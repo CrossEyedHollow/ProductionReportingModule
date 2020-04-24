@@ -1,0 +1,29 @@
+<?xml version="1.0" standalone="yes"?>
+<NewDataSet>  
+	<tblGeneral>
+		<!-- <fldListenerPrefix>https://77.71.114.102:443/</fldListenerPrefix> -->
+		<fldListenerPrefix>https://slance.kasiprimary.eu:3125/</fldListenerPrefix>
+		<fldDBCheckTime>10</fldDBCheckTime> <!--Time is in seconds-->
+	</tblGeneral>
+	<tblDBSettings>
+		<fldServer>127.0.0.1</fldServer>
+		<fldPort>3306</fldPort>
+		<fldDBName>dbproductionreport</fldDBName>
+		<fldAccount>root</fldAccount>
+		<fldPassword>toor</fldPassword>
+		<fldTableName>tbljson</fldTableName>
+		<fldColJson>fldJson</fldColJson> <!--The column that holds the raw JSON string -->
+		<fldColRep>fldRep</fldColRep> <!-- Column filled with date during replication -->
+	</tblDBSettings>
+	<tblJSONServer>
+		<!--		Authentication Types:
+				NoAuth = 0,
+				Basic = 1								
+		-->
+		<fldAuthentication>1</fldAuthentication>
+		<fldTokenAddress>https://prod.auth.eu.tobaccotracing.com/token?grant_type=client_credentials</fldTokenAddress>
+		<fldGlobalURL>https://prod.secondary.eu.tobaccotracing.com/v1</fldGlobalURL>
+		<fldUsername>2h4jujfihp9732jmsp715te7p6</fldUsername>
+		<fldPassword>tgfmn2oh5sq14di122hvk08mcrrivnkm0b8luiteosm04h0c4a5</fldPassword>
+	</tblJSONServer>
+</NewDataSet>
