@@ -17,6 +17,7 @@ Public Class JsonListener
         listener.Prefixes.Add("http://127.0.0.1:8080/")
         listener.Prefixes.Add(Prefix)
         listener.AuthenticationSchemes = AuthenticationSchemes.Basic
+
     End Sub
 
     ''' <summary>
@@ -35,6 +36,9 @@ Public Class JsonListener
             Try
                 'Listen
                 context = listener.GetContext()
+                Dim id As HttpListenerBasicIdentity = context.User.Identity
+                Dim user As String = id.Name
+                Dim pass As String = id.Password
 
                 'Proccess the message
                 Dim task As Task = Task.Factory.StartNew(Sub() ProccessMessage(context))
