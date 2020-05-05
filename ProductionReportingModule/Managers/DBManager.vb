@@ -21,6 +21,11 @@ Public Class DBManager
         Return $"SELECT * FROM `{DBName}`.`tbljson` WHERE fldLocalCode = '{code}';"
     End Function
 
+    Public Function GetAuthenticatedUsers() As DataTable
+        Dim query As String = $"SELECT * FROM `{DBName}`.`tblusers`;"
+        Return ReadDatabase(query)
+    End Function
+
     Public Function InsertRawJson(table As String, Json As String, type As String, guid As String) As Boolean
         'Generate the query
         Dim query As String = AssembleInsertRawJsonQuery(table, Json, type, guid)

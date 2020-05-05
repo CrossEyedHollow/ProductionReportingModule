@@ -10,6 +10,7 @@ Public Class JsonListener
 
     Dim listener As HttpListener
     Shared Property Prefix As String
+    Shared Property Users As Dictionary(Of String, String)
 
     Public Sub New()
         listener = New HttpListener()
@@ -25,6 +26,18 @@ Public Class JsonListener
     ''' </summary>
     Public Sub Start()
         Dim thrdListener = New Thread(AddressOf Listen)
+        Dim db As New DBManager()
+        'Get all authenticated users from db
+        'Dim result As DataTable = db.GetAuthenticatedUsers()
+
+        'convert to KeyValuePair
+        'For Each row As DataRow In result.Rows
+        '    Dim user As String = row("fldUser")
+        '    Dim pass As String = row("fldPassword")
+
+        '    Users.Add(user, pass)
+        'Next
+
         listener.Start()
         thrdListener.Start()
     End Sub

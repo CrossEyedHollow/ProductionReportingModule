@@ -39,6 +39,7 @@ Public Class TokenManager
 
             Select Case authType
                 Case AuthenticationType.NoAuth
+                    Dim cLength As Byte() = Encoding.UTF8.GetBytes("")
                     request.AddHeader("content-length", "74")
                     request.AddHeader("authorization", "Basic Y2xpZW50Og==")
                     request.AddParameter("undefined", $"grant_type=password&username={serverAcc}&password={serverPass}", ParameterType.RequestBody)
@@ -46,12 +47,11 @@ Public Class TokenManager
                 Case AuthenticationType.Basic
                     Dim strBaseCredentials As String = Convert.ToBase64String(Encoding.ASCII.GetBytes(String.Format("{0}:{1}", serverAcc, serverPass)))
                     request.AddHeader("authorization", $"Basic {strBaseCredentials}")
-                    'request.AddCookie("XSRF-TOKEN", "5cf412de-7efe-4f8f-938f-47d46b2eac5d")
                 Case Else
                     Throw New NotImplementedException($"{authType.ToString()} not aplicable for TokenManager")
             End Select
 
-            request.AddHeader("Content-Type", "application/x-www-form-urlencoded")
+            request.AddHeader("Content-Type", "application/json")
 
             Try
                 Dim response = client.Execute(request)
