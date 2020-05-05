@@ -39,7 +39,6 @@ Public Class TokenManager
 
             Select Case authType
                 Case AuthenticationType.NoAuth
-                    Dim cLength As Byte() = Encoding.UTF8.GetBytes("")
                     request.AddHeader("content-length", "74")
                     request.AddHeader("authorization", "Basic Y2xpZW50Og==")
                     request.AddParameter("undefined", $"grant_type=password&username={serverAcc}&password={serverPass}", ParameterType.RequestBody)
@@ -51,7 +50,7 @@ Public Class TokenManager
                     Throw New NotImplementedException($"{authType.ToString()} not aplicable for TokenManager")
             End Select
 
-            request.AddHeader("Content-Type", "application/json")
+            request.AddHeader("Content-Type", "application/x-www-form-urlencoded") 'Do not change the content type... magic
 
             Try
                 Dim response = client.Execute(request)

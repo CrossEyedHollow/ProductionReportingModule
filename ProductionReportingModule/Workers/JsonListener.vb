@@ -26,17 +26,18 @@ Public Class JsonListener
     ''' </summary>
     Public Sub Start()
         Dim thrdListener = New Thread(AddressOf Listen)
+        Users = New Dictionary(Of String, String)
         Dim db As New DBManager()
         'Get all authenticated users from db
-        'Dim result As DataTable = db.GetAuthenticatedUsers()
+        Dim result As DataTable = db.GetAuthenticatedUsers()
 
         'convert to KeyValuePair
-        'For Each row As DataRow In result.Rows
-        '    Dim user As String = row("fldUser")
-        '    Dim pass As String = row("fldPassword")
-
-        '    Users.Add(user, pass)
-        'Next
+        For Each row As DataRow In result.Rows
+            Dim user As String = row("fldUser")
+            Dim pass As String = row("fldPassword")
+            'If user = String.Empty Then user = "_"
+            Users.Add(user, pass)
+        Next
 
         listener.Start()
         thrdListener.Start()
@@ -49,24 +50,33 @@ Public Class JsonListener
             Try
                 'Listen
                 context = listener.GetContext()
-                Dim id As HttpListenerBasicIdentity = context.User.Identity
-                Dim user As String = id.Name
-                Dim pass As String = id.Password
 
                 'Proccess the message
                 Dim task As Task = Task.Factory.StartNew(Sub() ProccessMessage(context))
 
             Catch ex As Exception
                 'If something fails log the error
-                Output.Report("Failed to get context of incoming transaction.")
+                Output.Report($"Failed to process message. Reason: {ex.Message}")
             End Try
         End While
     End Sub
+
+    Private Function CheckCredentials(user As String, pass As String) As Boolean
+        If Not Users.Keys.Contains(user) Then Throw New Exception("User does not exist")
+        Dim hashPass As String = CreateMD5(pass)
+        If Users(user) <> hashPass Then Throw New Exception("Password didn't match")
+        Return True
+    End Function
 
     Public Sub ProccessMessage(context As HttpListenerContext)
         Try
             'Make a new instance of the db so we can have multiple async connections
             Dim db As New DBManager()
+
+            'Extract credentials
+            Dim id As HttpListenerBasicIdentity = context.User.Identity
+
+            CheckCredentials(id.Name, id.Password)
 
             'Convert message to string
             Dim rawText As String = New StreamReader(context.Request.InputStream, context.Request.ContentEncoding).ReadToEnd()
