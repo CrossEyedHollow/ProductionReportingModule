@@ -50,6 +50,20 @@ Public Class DBManager
         Execute(query)
     End Sub
 
+    Public Function CheckCodesExistence(codes As String(), table As String, column As String) As DataTable
+        Dim query As String = $"SELECT * from `{DBName}`.`{table}` WHERE {column} in ('{String.Join("','", codes)}')"
+        Return ReadDatabase(query)
+    End Function
+
+    Public Function CheckPrimaryCodesExpiration(codes As String()) As DataTable
+        Dim query As String = $"SELECT * FROM `{DBName}`.`tblprimarycodes` WHERE fldCode in ('{String.Join("','", codes)}') AND fldIssueDate < NOW() - INTERVAL 6 MONTH;"
+        Return ReadDatabase(query)
+    End Function
+
+    Public Function CheckAggregatedCodesExpiration(codes As String()) As DataTable
+        Dim query As String = $"SELECT * FROM `{DBName}`.`tblaggregatedcodes` WHERE fldPrintCode in ('{String.Join("','", codes)}') AND fldPrintDate < NOW() - INTERVAL 6 MONTH;"
+        Return ReadDatabase(query)
+    End Function
 #Region "Queries"
     Private Function AssembleInsertRawJsonQuery(table As String, Json As String, type As String, guid As String) As String
         Return $"INSERT INTO `{DBName}`.`{table}` ({JsonColumn}, fldLocalCode, fldType) VALUES ('{Json}', '{guid}', '{type}');"
@@ -68,49 +82,4 @@ Public Class DBManager
     End Function
 
 #End Region
-
-#Region "Direct access"
-    Public Function ReadDatabase(query As String) As DataTable
-        cmd.CommandText = query
-        adapter.SelectCommand = cmd
-        Dim output As New DataTable
-
-        Try
-            conn.Open()
-            adapter.Fill(output)
-        Catch ex As Exception
-            ReportTools.Output.Report($"Exception occured while reading from database: '{ex.Message}'")
-        End Try
-
-        Disconnect()
-        Return output
-    End Function
-
-    Public Function Execute(query As String) As Boolean
-        If query = String.Empty Then Return False
-        Dim output As Boolean = False
-
-        'Execute the query
-        cmd.CommandText = query
-        Try
-            conn.Open()
-            cmd.ExecuteNonQuery()
-            output = True
-        Catch ex As Exception
-            ReportTools.Output.Report($"Exception occured while writing to Database: '{ex.Message}'; {Environment.NewLine}Query: {query}")
-        End Try
-
-        'Close connection and return the result
-        Disconnect()
-        Return output
-    End Function
-
-    Public Sub Disconnect()
-        Try
-            If conn.State <> ConnectionState.Closed Then conn.Close()
-        Catch
-        End Try
-    End Sub
-#End Region
-
 End Class

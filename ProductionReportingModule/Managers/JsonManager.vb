@@ -1,4 +1,5 @@
 ﻿Imports System.Text
+Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Linq
 Imports RestSharp
 
@@ -73,6 +74,25 @@ Public Module JsonManager
     Public Function Post(json As String, url As String) As String
         client = New RestClient(url)
         Return Post(json)
+    End Function
+
+    Public Function StandartResponse(code As String, msgType As String, checksum As String, errors As List(Of ValidationError), Optional expireDate As Date = Nothing) As String
+        Dim output As JObject = New JObject()
+        output("Code") = code
+        output("Message_Type") = msgType
+        If errors IsNot Nothing Then
+            output("Error") = 1
+            'Serialize all errors and join then, format: {error1},{error2}
+            output("Errors") = JArray.FromObject(errors)
+
+        Else
+            output("Error") = 0
+            output("Errors") = Nothing
+        End If
+
+        output("Checksum") = checksum
+        If expireDate <> Nothing Then output("RecallExpiry_Time") = GetTimeLong(expireDate.AddMonths(6))
+        Return output.ToString(Formatting.Indented)
     End Function
 
     Public Function CreateMD5(ByVal input As String) As String

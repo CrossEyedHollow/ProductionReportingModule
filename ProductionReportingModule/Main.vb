@@ -16,6 +16,11 @@ Module Main
             Exit Sub
         End Try
 
+        'TESTING GROUND
+        'Dim strr As New List(Of String) From {"",""}
+        'Dim strTest As String = JsonListener.StandartResponse("ddd", "ggg", "kkk", New List(Of ValidationError) From {New ValidationError() With {.Error_Code = "1", .Error_Descr = "2", .Error_Data = "3"}, New ValidationError() With {.Error_Code = "4", .Error_Descr = "5", .Error_Data = "6"}})
+        'END OF TESTING GROUND
+
         'Start the token manager
         tokenManager.Start()
 
