@@ -30,8 +30,8 @@ Module Main
         'Wait
         Thread.Sleep(3000)
 
-        Dim sender As New JsonSender()
-        sender.Start()
+        'Dim sender As New JsonSender()
+        'sender.Start()
 
         'Stay alive
         While Thread.CurrentThread.IsAlive

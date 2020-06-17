@@ -12,76 +12,135 @@ Public Class ValidationManager
     Public Property ValidationResult As ValidationResult
     Public Property ErrorMessage As String
     Public Property ErrorHTTPCode As Integer
+    Public Property Context As HttpListenerContext
+    Public Property Content As String
+    Public Property JSON As JObject
 
-    Private Property Context As HttpListenerContext
-    Private Property Content As String
-    Private Property JSON As JObject
     Private Property msgType As String
     Private Property msgCode As String
 
     Public Sub Validate(message As HttpListenerContext)
         Context = message
         Content = New StreamReader(Context.Request.InputStream, Context.Request.ContentEncoding).ReadToEnd()
-
-        ValidationResult = ValidationResult.Valid
+        Dim currentResult As ValidationResult
 
         'Check Tokens / Credentials
-        If (ValidationResult = VAL_SEC_TOKEN()) <> ValidationResult.Valid Then
+        currentResult = VAL_SEC_TOKEN()
+        If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 401
+            ValidationResult = currentResult
             ErrorMessage = StandartResponse(Nothing, Nothing, Nothing, Errors)
             Exit Sub
         End If
 
         'Check message integrity
-        If (ValidationResult = VAL_SEC_HASH()) <> ValidationResult.Valid Then
+        currentResult = VAL_SEC_HASH()
+        If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
+            ValidationResult = currentResult
             ErrorMessage = StandartResponse(Nothing, Nothing, Nothing, Errors)
             Exit Sub
         End If
 
-        If (ValidationResult = VAL_MSG_JSON()) <> ValidationResult.Valid Then
+        currentResult = VAL_MSG_JSON()
+        If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
+            ValidationResult = currentResult
             ErrorMessage = StandartResponse(Nothing, Nothing, Nothing, Errors)
             Exit Sub
         End If
 
-        If (ValidationResult = VAL_FIE_MAN()) <> ValidationResult.Valid Then
+        currentResult = VAL_FIE_MAN()
+        If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
+            ValidationResult = currentResult
             ErrorMessage = StandartResponse(Nothing, Nothing, Nothing, Errors)
             Exit Sub
         End If
 
-        If Not (ValidationResult = VAL_MSG_TYPE()) <> ValidationResult.Valid Then
+        currentResult = VAL_MSG_TYPE()
+        If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
-            ErrorMessage = StandartResponse(msgCode, msgType, CreateMD5(Content), Errors)
-
-        End If
-
-        If (ValidationResult = VAL_FIE_FORMAT()) <> ValidationResult.Valid Then
-            ErrorHTTPCode = 400
+            ValidationResult = currentResult
             ErrorMessage = StandartResponse(msgCode, msgType, CreateMD5(Content), Errors)
         End If
 
-        If (ValidationResult = VAL_MSG_CODE_DUPLICATE()) <> ValidationResult.Valid Then
+        currentResult = VAL_FIE_FORMAT()
+        If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
+            ValidationResult = currentResult
             ErrorMessage = StandartResponse(msgCode, msgType, CreateMD5(Content), Errors)
         End If
 
-        If (ValidationResult = VAL_UI_MULT_MSG()) <> ValidationResult.Valid Then
+        currentResult = VAL_MSG_CODE_DUPLICATE()
+        If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
+            ValidationResult = currentResult
             ErrorMessage = StandartResponse(msgCode, msgType, CreateMD5(Content), Errors)
         End If
 
-        If (ValidationResult = VAL_UI_EXIST_APP()) <> ValidationResult.Valid Then
+        currentResult = VAL_UI_MULT_MSG()
+        If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
+            ValidationResult = currentResult
             ErrorMessage = StandartResponse(msgCode, msgType, CreateMD5(Content), Errors)
         End If
 
-        If (ValidationResult = VAL_UI_DUPLICATE_APP()) <> ValidationResult.Valid Then
+        currentResult = VAL_UI_EXIST_APP()
+        If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
+            ValidationResult = currentResult
             ErrorMessage = StandartResponse(msgCode, msgType, CreateMD5(Content), Errors)
         End If
 
+        currentResult = VAL_UI_DUPLICATE_APP()
+        If currentResult <> ValidationResult.Valid Then
+            ErrorHTTPCode = 400
+            ValidationResult = currentResult
+            ErrorMessage = StandartResponse(msgCode, msgType, CreateMD5(Content), Errors)
+        End If
+
+        currentResult = VAL_UI_FID_APP()
+        If currentResult <> ValidationResult.Valid Then
+            ErrorHTTPCode = 400
+            ValidationResult = currentResult
+            ErrorMessage = StandartResponse(msgCode, msgType, CreateMD5(Content), Errors)
+        End If
+
+        currentResult = VAL_UI_EXIST_UPUI()
+        If currentResult <> ValidationResult.Valid Then
+            ErrorHTTPCode = 400
+            ValidationResult = currentResult
+            ErrorMessage = StandartResponse(msgCode, msgType, CreateMD5(Content), Errors)
+        End If
+
+        currentResult = VAL_UI_EXIST_AUI()
+        If currentResult <> ValidationResult.Valid Then
+            ErrorHTTPCode = 400
+            ValidationResult = currentResult
+            ErrorMessage = StandartResponse(msgCode, msgType, CreateMD5(Content), Errors)
+        End If
+
+        currentResult = VAL_UI_EXIST_UPUI_SEQ()
+        If currentResult <> ValidationResult.Valid Then
+            ErrorHTTPCode = 400
+            ValidationResult = currentResult
+            ErrorMessage = StandartResponse(msgCode, msgType, CreateMD5(Content), Errors)
+        End If
+
+        currentResult = VAL_UI_EXIST_AUI_SEQ()
+        If currentResult <> ValidationResult.Valid Then
+            ErrorHTTPCode = 400
+            ValidationResult = currentResult
+            ErrorMessage = StandartResponse(msgCode, msgType, CreateMD5(Content), Errors)
+        End If
+
+        currentResult = VAL_UI_EXPIRY()
+        If currentResult <> ValidationResult.Valid Then
+            ErrorHTTPCode = 400
+            ValidationResult = currentResult
+            ErrorMessage = StandartResponse(msgCode, msgType, CreateMD5(Content), Errors)
+        End If
 
     End Sub
 
@@ -186,13 +245,34 @@ Public Class ValidationManager
                 'parent code has to be checked too
                 'Aggregated_UIs1
                 'Aggregated_UIs2
-                output = Not CheckForDuplicates("Aggregated_UIs1")
-                output = Not CheckForDuplicates("Aggregated_UIs2")
+                Dim aggType As Integer = JSON("Aggregation_Type").ToObject(Of Integer)
+                Select Case aggType
+                    Case 1 'ui inly
+                        output = Not CheckForDuplicates("Aggregated_UIs1")
+                    Case 2 'Aggregated only
+                        output = Not CheckForDuplicates("Aggregated_UIs2")
+                    Case 3 'Both
+                        output = Not CheckForDuplicates("Aggregated_UIs1")
+                        output = Not CheckForDuplicates("Aggregated_UIs2")
+                    Case Else
+                        Throw New Exception($"Unexpected value for Aggregation_Type: {aggType}")
+                End Select
+
             Case "EDP", "ERP", "ETL", "EVR", "EIV", "EPO", "EPR"
                 'upUIs
                 'aUIs
-                output = Not CheckForDuplicates("upUIs")
-                output = Not CheckForDuplicates("aUIs")
+                Dim aggType As Integer = JSON("UI_Type").ToObject(Of Integer)
+                Select Case aggType
+                    Case 1 'ui inly
+                        output = Not CheckForDuplicates("upUIs")
+                    Case 2 'Aggregated only
+                        output = Not CheckForDuplicates("aUIs")
+                    Case 3 'Both
+                        output = Not CheckForDuplicates("upUIs")
+                        output = Not CheckForDuplicates("aUIs")
+                    Case Else
+                        Throw New Exception($"Unexpected value for UI_Type: {aggType}")
+                End Select
             Case "EUD"
                 'only has 1 aUI ???
             Case Else
@@ -210,9 +290,9 @@ Public Class ValidationManager
 
                 'it should not be possible to get Count > Length
                 If result.Rows.Count < codes.Length Then 'If there are unexisting codes
-                    'Extract them
+                    ' Extract them
                     Dim existingCodes As String() = result.ColumnToArray("fldCode")
-                    Dim missingCodes As String() = codes.Except(existingCodes)
+                    Dim missingCodes As String() = codes.Except(existingCodes).ToArray()
                     'Create new error
                     Dim newError As New ValidationError() With {.Error_Code = "UIS_APPLICATION_ERROR", .Error_Descr = $"Some of the codes were not found in the primary repository.", .Error_Data = String.Join("#", missingCodes)}
                     Errors.Add(newError)
@@ -315,11 +395,11 @@ Public Class ValidationManager
     End Function
 
     Public Function VAL_UI_EXIST_UPUI_SEQ() As ValidationResult
-        Throw New NotImplementedException("VAL_UI_EXIST_UPUI_SEQ not implemented.")
+        Return ValidationResult.Valid
     End Function
 
     Public Function VAL_UI_EXIST_AUI_SEQ() As ValidationResult
-        Throw New NotImplementedException("VAL_UI_EXIST_UPUI_SEQ not implemented.")
+        Return ValidationResult.Valid
     End Function
 
     Public Function VAL_UI_EXPIRY() As ValidationResult
@@ -405,9 +485,9 @@ Public Class ValidationManager
 
     Private Function CheckForDuplicates(uis As String) As Boolean
         'upUI
-        Dim upUIs As String() = JSON.Item(uis).ToObject(Of String())
-        If upUIs.HasDuplicates() Then
-            Dim duplicates As String() = upUIs.GroupBy(Function(s) s).SelectMany(Function(grp) grp.Skip(1)).Distinct()
+        Dim codes As String() = JSON.Item(uis).ToObject(Of String())
+        If codes.HasDuplicates() Then
+            Dim duplicates As String() = codes.GroupBy(Function(s) s).SelectMany(Function(grp) grp.Skip(1)).Distinct()
             Dim newError As New ValidationError() With {.Error_Code = "MULTIPLE_UID", .Error_Descr = $"Multiple duplicate {uis} present in the messages", .Error_Data = String.Join("#", duplicates)}
             Errors.Add(newError)
             Return True

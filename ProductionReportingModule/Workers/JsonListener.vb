@@ -81,7 +81,7 @@ Public Class JsonListener
                 answer = vManager.ErrorMessage
             Else
                 'Convert message to string
-                Dim rawText As String = New StreamReader(context.Request.InputStream, context.Request.ContentEncoding).ReadToEnd()
+                Dim rawText As String = vManager.Content
 
                 'Parse the incoming msg
                 Dim json As JObject = JObject.Parse(rawText)
