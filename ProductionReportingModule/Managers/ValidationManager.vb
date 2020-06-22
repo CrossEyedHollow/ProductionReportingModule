@@ -58,6 +58,20 @@ Public Class ValidationManager
             Exit Sub
         End If
 
+        currentResult = VAL_EVT_24H()
+        If currentResult <> ValidationResult.Valid Then
+            ErrorHTTPCode = 299 'Warning
+            ValidationResult = currentResult
+            ErrorMessage = StandartResponse(msgCode, msgType, CreateMD5(Content), Errors)
+        End If
+
+        currentResult = VAL_EVT_TIME()
+        If currentResult <> ValidationResult.Valid Then
+            ErrorHTTPCode = 299 'Warning
+            ValidationResult = currentResult
+            ErrorMessage = StandartResponse(msgCode, msgType, CreateMD5(Content), Errors)
+        End If
+
         currentResult = VAL_MSG_TYPE()
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
@@ -136,6 +150,20 @@ Public Class ValidationManager
         End If
 
         currentResult = VAL_UI_EXPIRY()
+        If currentResult <> ValidationResult.Valid Then
+            ErrorHTTPCode = 400
+            ValidationResult = currentResult
+            ErrorMessage = StandartResponse(msgCode, msgType, CreateMD5(Content), Errors)
+        End If
+
+        currentResult = VAL_UI_ORD_REACTIVATION()
+        If currentResult <> ValidationResult.Valid Then
+            ErrorHTTPCode = 400
+            ValidationResult = currentResult
+            ErrorMessage = StandartResponse(msgCode, msgType, CreateMD5(Content), Errors)
+        End If
+
+        currentResult = VAL_UI_ORD_DEACTIVATED()
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
             ValidationResult = currentResult
@@ -234,8 +262,15 @@ Public Class ValidationManager
             Case "IDA"
                 'Deact_upUI
                 'Deact_aUI
-                output = Not CheckForDuplicates("Deact_upUI")
-                output = Not CheckForDuplicates("Deact_aUI")
+                Dim aggType As Integer = JSON("Deact_Type").ToObject(Of Integer)
+                Select Case aggType
+                    Case 1 'ui only
+                        output = Not CheckForDuplicates("Deact_upUI")
+                    Case 2 'Aggregated only
+                        output = Not CheckForDuplicates("Deact_aUI")
+                    Case Else
+                        Throw New Exception($"Unexpected value for Deact_Type: {aggType}")
+                End Select
             Case "EUA"
                 'upUI_1
                 'upUI_2
@@ -247,7 +282,7 @@ Public Class ValidationManager
                 'Aggregated_UIs2
                 Dim aggType As Integer = JSON("Aggregation_Type").ToObject(Of Integer)
                 Select Case aggType
-                    Case 1 'ui inly
+                    Case 1 'ui only
                         output = Not CheckForDuplicates("Aggregated_UIs1")
                     Case 2 'Aggregated only
                         output = Not CheckForDuplicates("Aggregated_UIs2")
@@ -263,7 +298,7 @@ Public Class ValidationManager
                 'aUIs
                 Dim aggType As Integer = JSON("UI_Type").ToObject(Of Integer)
                 Select Case aggType
-                    Case 1 'ui inly
+                    Case 1 'ui only
                         output = Not CheckForDuplicates("upUIs")
                     Case 2 'Aggregated only
                         output = Not CheckForDuplicates("aUIs")
@@ -275,6 +310,7 @@ Public Class ValidationManager
                 End Select
             Case "EUD"
                 'only has 1 aUI ???
+                output = True
             Case Else
                 output = True
         End Select
@@ -369,11 +405,21 @@ Public Class ValidationManager
     End Function
 
     Public Function VAL_UI_FID_APP() As ValidationResult
+        Dim db As New DBManager()
         'Validation is only ment for EUA messages
         If msgType <> "EUA" Then Return ValidationResult.Valid
         'TODO
         'Check F_ID
-        Return ValidationResult.Valid
+        Dim id As String = JSON("F_ID")
+        Dim result = db.CheckF_ID(id)
+
+        If result.Rows.Count < 1 Then
+            'Generate error
+            Dim newError As New ValidationError() With {.Error_Code = "FID_MISMATCH", .Error_Descr = "F_ID not found in the primary repository."}
+            Errors.Add(newError)
+            Return ValidationResult.Invalid
+        Else Return ValidationResult.Valid
+        End If
     End Function
 
     Public Function VAL_UI_EXIST_UPUI() As ValidationResult
@@ -477,6 +523,52 @@ Public Class ValidationManager
                         Throw New Exception($"Unexpected value for Aggregation_Type: '{aggType}'")
                 End Select
                 Return ValidationResult.Valid
+            Case Else
+                Return ValidationResult.Valid
+        End Select
+    End Function
+
+    'ASAP
+    Public Function VAL_UI_ORD_REACTIVATION() As ValidationResult
+        Return ValidationResult.Valid
+    End Function
+
+    'ASAP
+    Public Function VAL_UI_ORD_DEACTIVATED() As ValidationResult
+        Return ValidationResult.Valid
+    End Function
+
+    Public Function VAL_EVT_24H() As ValidationResult
+        Select Case msgType
+            Case "EUA", "EPA", "EVR", "EIV", "EPO", "EPR"
+                Dim eventTime As Date = ParseTime(JSON("Event_Time"))
+                If Date.UtcNow - eventTime > TimeSpan.FromHours(24) Then
+                    'It's an older code, sir, but it checks out. 
+                    Dim newError As New ValidationError() With {
+                       .Error_Code = "OPERATION_WITHIN_24_HOURS",
+                       .Error_Descr = $"Events should be reported within 24 hours from the occurrence of the event"}
+                    Errors.Add(newError)
+                    Return ValidationResult.PassWithWarning
+                Else Return ValidationResult.Valid
+                End If
+            Case Else
+                Return ValidationResult.Valid
+        End Select
+    End Function
+
+    Public Function VAL_EVT_TIME() As ValidationResult
+        Select Case msgType
+            Case "EDP", "ETL"
+                Dim eventTime As Date = ParseTime(JSON("Event_Time"))
+                If Date.UtcNow - eventTime > TimeSpan.FromHours(24) Then
+                    'It's an older code, sir, but it checks out. 
+                    Dim newError As New ValidationError() With {
+                       .Error_Code = "SHIPMENT_WITHIN_24_HOURS",
+                       .Error_Descr = $"Events should be reported within 24 hours from the occurrence of the event"}
+                    Errors.Add(newError)
+                    Return ValidationResult.PassWithWarning
+                Else Return ValidationResult.Valid
+                End If
             Case Else
                 Return ValidationResult.Valid
         End Select
