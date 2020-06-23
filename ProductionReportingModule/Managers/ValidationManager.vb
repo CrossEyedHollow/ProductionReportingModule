@@ -23,6 +23,7 @@ Public Class ValidationManager
         Context = message
         Content = New StreamReader(Context.Request.InputStream, Context.Request.ContentEncoding).ReadToEnd()
         Dim currentResult As ValidationResult
+        ValidationResult = ValidationResult.Valid
 
         'Check Tokens / Credentials
         currentResult = VAL_SEC_TOKEN()
@@ -59,6 +60,7 @@ Public Class ValidationManager
         Else 'Save the variables for future use
             msgCode = JSON("Code")
             msgType = JSON("Message_Type")
+            If msgType = "IRU" Then Exit Sub
         End If
 
         currentResult = VAL_EVT_24H()
