@@ -75,10 +75,11 @@ Public Class JsonListener
             vManager.Validate(context)
 
             'Check result
-            If (vManager.ValidationResult <> ValidationResult.Valid) Then
+            If (vManager.ValidationResult = ValidationResult.Invalid) Then
                 'Get the error response
                 responseCode = vManager.ErrorHTTPCode
                 answer = vManager.ErrorMessage
+                Output.Report($"Validation failed with status: {vManager.ErrorHTTPCode}")
             Else
                 'Convert message to string
                 Dim rawText As String = vManager.Content
@@ -101,30 +102,7 @@ Public Class JsonListener
                             Output.ToConsole("New IRU was received from secondary repository and was sent to the Database")
                         End If
                     Case "STA"
-                        'Get the response from database
-                        Dim result As DataTable = db.CheckForCode(code)
-
-                        'If match is found
-                        If result.Rows.Count > 0 Then
-                            'Get response
-                            Dim response As String = result.Rows(0)("fldResponse")
-
-                            'Validate response
-                            If response.IsNullOrEmpty() Then
-                                'Return error
-                                answer = "Code matched but response field is empty. Message might still be in queue."
-                                responseCode = 503
-                                Output.ToConsole($"STA message fail: {answer}")
-                            Else
-                                'Anwer with the response from the secondary
-                                answer = response
-                                Output.ToConsole($"Responding to STA, code: '{code}'.")
-                            End If
-                        Else 'No matches
-                            answer = $"No matching entities found for code: '{code}'"
-                            responseCode = 503
-                            Output.ToConsole($"STA message fail: {answer}")
-                        End If
+                        answer = ProcessSTA(code)
                     Case Else
                         'Create response
                         Dim checksum As String = CreateMD5(rawText)
@@ -135,6 +113,12 @@ Public Class JsonListener
                             Output.ToConsole("New Json sent to the Database")
                         End If
                 End Select
+
+                'This is needed to return Warnings
+                If vManager.Errors.Count > 0 Then
+                    answer = vManager.ErrorMessage
+                    responseCode = vManager.ErrorHTTPCode
+                End If
             End If
             'Return a response
             context.Respond(answer, responseCode)
@@ -151,4 +135,33 @@ Public Class JsonListener
         End Try
     End Sub
 
+    Private Shared Function ProcessSTA(code As String) As String
+        Dim db As New DBManager()
+
+        'Get the response from database
+        Dim result As DataTable = db.CheckForCode(code)
+
+        Dim answer As String
+        'If match is found
+        If result.Rows.Count > 0 Then
+            'Get response
+            Dim response As String = result.Rows(0)("fldResponse")
+
+            'Validate response
+            If response.IsNullOrEmpty() Then
+                'Return error
+                Throw New Exception("Code matched but response field is empty. Message might still be in queue.")
+                Output.ToConsole($"STA message fail: {answer}")
+            Else
+                'Anwer with the response from the secondary
+                answer = response
+                Output.ToConsole($"Responding to STA, code: '{code}'.")
+            End If
+        Else 'No matches
+            Throw New Exception($"No matching entities found for code: '{code}'")
+            Output.ToConsole($"STA message fail: {answer}")
+        End If
+
+        Return answer
+    End Function
 End Class

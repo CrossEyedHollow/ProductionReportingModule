@@ -56,6 +56,9 @@ Public Class ValidationManager
             ValidationResult = currentResult
             ErrorMessage = StandartResponse(Nothing, Nothing, Nothing, Errors)
             Exit Sub
+        Else 'Save the variables for future use
+            msgCode = JSON("Code")
+            msgType = JSON("Message_Type")
         End If
 
         currentResult = VAL_EVT_24H()
@@ -224,17 +227,19 @@ Public Class ValidationManager
 
     Public Function VAL_FIE_MAN() As ValidationResult
         'Check required fields
-        Try
-            msgType = JSON("Message_Type")
-            msgCode = JSON("Code")
-            'TODO
-            'check mandatory fields for current message type
-        Catch ex As Exception
-            Dim newError As New ValidationError() With {.Error_Code = "REQUIRED_FIELD_FAILED_VALIDATION", .Error_Descr = "Mandatory field is missing", .Error_Data = ex.Message}
-            Errors.Add(newError)
-            Return ValidationResult.Invalid
-        End Try
-        Return ValidationResult.Valid
+        Dim output As ValidationResult = ValidationResult.Valid
+        Dim mandatoryFields As String() = New String() {"Code", "Message_Type"}
+
+        'Check fields
+        For Each field As String In mandatoryFields
+            'If the field is missing generate error
+            If Not JSON.ContainsKey(field) Then
+                Dim newError As New ValidationError() With {.Error_Code = "REQUIRED_FIELD_FAILED_VALIDATION", .Error_Descr = "Mandatory field is missing", .Error_Data = "Message_Type"}
+                Errors.Add(newError)
+                output = ValidationResult.Invalid
+            End If
+        Next
+        Return output
     End Function
 
     Public Function VAL_FIE_FORMAT() As ValidationResult
@@ -579,7 +584,7 @@ Public Class ValidationManager
         'upUI
         Dim codes As String() = JSON.Item(uis).ToObject(Of String())
         If codes.HasDuplicates() Then
-            Dim duplicates As String() = codes.GroupBy(Function(s) s).SelectMany(Function(grp) grp.Skip(1)).Distinct()
+            Dim duplicates As String() = codes.GroupBy(Function(s) s).SelectMany(Function(grp) grp.Skip(1)).Distinct().ToArray()
             Dim newError As New ValidationError() With {.Error_Code = "MULTIPLE_UID", .Error_Descr = $"Multiple duplicate {uis} present in the messages", .Error_Data = String.Join("#", duplicates)}
             Errors.Add(newError)
             Return True
