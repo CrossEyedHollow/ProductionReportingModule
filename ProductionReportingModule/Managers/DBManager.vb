@@ -38,6 +38,11 @@ Public Class DBManager
         Return Execute(query)
     End Function
 
+    Public Sub InsertRejected(type As String, json As String, response As String)
+        Dim query As String = $"INSERT INTO `{DBName}`.`tblrejected` (fldType, fldJson, fldRejectReason) VALUES ('{type}','{json}','{response}')".Replace("''", "-")
+        Execute(query)
+    End Sub
+
     Public Function InsertRawJson(table As String, Json As String, type As String) As Boolean
         'Generate the query
         Dim query As String = AssembleInsertRawJsonQuery(table, Json, type)

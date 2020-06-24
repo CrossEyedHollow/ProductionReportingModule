@@ -80,12 +80,13 @@ Public Class JsonListener
                 responseCode = vManager.ErrorHTTPCode
                 answer = vManager.ErrorMessage
                 Output.Report($"Validation failed with status: {vManager.ErrorHTTPCode}")
+                db.InsertRejected(vManager.JSON("Message_Type"), vManager.Content, vManager.ErrorMessage)
             Else
                 'Convert message to string
                 Dim rawText As String = vManager.Content
 
                 'Parse the incoming msg
-                Dim json As JObject = JObject.Parse(rawText)
+                Dim json As JObject = vManager.JSON
                 Dim msgType As String = json("Message_Type")
                 Dim code As String = json("Code")
 
