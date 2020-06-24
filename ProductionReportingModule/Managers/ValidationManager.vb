@@ -16,12 +16,13 @@ Public Class ValidationManager
     Public Property Content As String
     Public Property JSON As JObject
 
-    Private Property msgType As String
-    Private Property msgCode As String
+    Public Property msgType As String
+    Public Property msgCode As String
 
     Public Sub Validate(message As HttpListenerContext)
         Context = message
         Content = New StreamReader(Context.Request.InputStream, Context.Request.ContentEncoding).ReadToEnd()
+
         Dim currentResult As ValidationResult
         ValidationResult = ValidationResult.Valid
 

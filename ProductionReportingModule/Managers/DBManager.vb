@@ -39,7 +39,7 @@ Public Class DBManager
     End Function
 
     Public Sub InsertRejected(type As String, json As String, response As String)
-        Dim query As String = $"INSERT INTO `{DBName}`.`tblrejected` (fldType, fldJson, fldRejectReason) VALUES ('{type}','{json}','{response}')".Replace("''", "-")
+        Dim query As String = $"INSERT INTO `{DBName}`.`tblrejected` (fldType, fldJson, fldRejectReason) VALUES ('{type}','{json}','{response}')".Replace("''", "'-'")
         Execute(query)
     End Sub
 
