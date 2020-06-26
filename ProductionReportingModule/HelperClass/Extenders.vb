@@ -1,6 +1,7 @@
 ﻿Imports System.Net
 Imports System.Runtime.CompilerServices
 Imports System.Text
+Imports System
 
 Public Module Extenders
     <Extension()>
@@ -52,5 +53,21 @@ Public Module Extenders
     <Extension()>
     Public Function ColumnToArray(ByVal dt As DataTable, columnName As String) As String()
         Return dt.Rows.OfType(Of DataRow).Select(Function(dr) dr.Field(Of String)(columnName)).ToArray()
+    End Function
+
+    <Extension()>
+    Public Function ToMD5Hash(ByVal input As String) As String
+        Using md5 As Security.Cryptography.MD5 = Security.Cryptography.MD5.Create()
+            'Get the bytes
+            Dim inputBytes As Byte() = Encoding.ASCII.GetBytes(input)
+            'Compute the hash
+            Dim hashBytes As Byte() = md5.ComputeHash(inputBytes)
+            Dim sb As StringBuilder = New StringBuilder()
+            'Convert to string
+            For i As Integer = 0 To hashBytes.Length - 1
+                sb.Append(hashBytes(i).ToString("x2"))
+            Next
+            Return sb.ToString()
+        End Using
     End Function
 End Module

@@ -4,6 +4,7 @@ Imports ReportTools
 Module Main
     Public tokenManager As TokenManager
     Public Property IsRunning As Boolean
+    Public Property senderEnabled As Boolean
 
     Sub Main()
         IsRunning = True
@@ -30,8 +31,10 @@ Module Main
         'Wait
         Thread.Sleep(3000)
 
-        'Dim sender As New JsonSender()
-        'sender.Start()
+        If senderEnabled Then
+            Dim sender As New JsonSender()
+            sender.Start()
+        End If
 
         'Stay alive
         While Thread.CurrentThread.IsAlive
@@ -52,6 +55,7 @@ Module Main
         Dim acc As String = row("fldUsername")
         Dim pass As String = row("fldPassword")
         Dim authType As String = row("fldAuthentication")
+        senderEnabled = Convert.ToInt32(row("fldEnabled"))
 
         'Create the Token manager
         tokenManager = New TokenManager(url, acc, pass, GetAuthType(authType))

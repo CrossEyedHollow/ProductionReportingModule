@@ -40,7 +40,7 @@ Public Module JsonManager
         Dim request As RestRequest = New RestRequest(Method.POST)
 
         Dim byteBody As Byte() = Encoding.UTF8.GetBytes(json)
-        Dim hash As String = CreateMD5(json)
+        Dim hash As String = json.ToMD5Hash()
 
         Select Case authType
             Case AuthenticationType.Bearer
@@ -59,7 +59,7 @@ Public Module JsonManager
         request.AddHeader("X-OriginalHash", hash)
         request.AddParameter("application/json", json, ParameterType.RequestBody)
 
-
+        'TODO add rejected message archivation
         'Execute
         Dim response = client.Execute(request)
         If Not response.IsSuccessful Then
@@ -95,19 +95,19 @@ Public Module JsonManager
         Return output.ToString(Formatting.Indented)
     End Function
 
-    Public Function CreateMD5(ByVal input As String) As String
-        Using md5 As Security.Cryptography.MD5 = Security.Cryptography.MD5.Create()
-            Dim inputBytes As Byte() = Encoding.ASCII.GetBytes(input)
-            Dim hashBytes As Byte() = md5.ComputeHash(inputBytes)
-            Dim sb As StringBuilder = New StringBuilder()
+    'Public Function HashMD5(ByVal input As String) As String
+    '    Using md5 As Security.Cryptography.MD5 = Security.Cryptography.MD5.Create()
+    '        Dim inputBytes As Byte() = Encoding.ASCII.GetBytes(input)
+    '        Dim hashBytes As Byte() = md5.ComputeHash(inputBytes)
+    '        Dim sb As StringBuilder = New StringBuilder()
 
-            For i As Integer = 0 To hashBytes.Length - 1
-                sb.Append(hashBytes(i).ToString("x2"))
-            Next
+    '        For i As Integer = 0 To hashBytes.Length - 1
+    '            sb.Append(hashBytes(i).ToString("x2"))
+    '        Next
 
-            Return sb.ToString()
-        End Using
-    End Function
+    '        Return sb.ToString()
+    '    End Using
+    'End Function
 
     Private Sub SetURLs(url As String)
         GlobalURL = url

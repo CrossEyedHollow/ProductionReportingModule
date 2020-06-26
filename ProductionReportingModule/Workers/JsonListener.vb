@@ -62,7 +62,6 @@ Public Class JsonListener
     End Sub
 
 
-
     Public Sub ProccessMessage(context As HttpListenerContext)
         Try
             'Declare variables
@@ -95,7 +94,7 @@ Public Class JsonListener
                     Case "IRU"
                         'Assemble response that mimics the secondary repository standary response
                         Dim eventTime As Date = ParseTime(json("Event_Time"))
-                        Dim checksum As String = CreateMD5(rawText)
+                        Dim checksum As String = rawText.ToMD5Hash()
                         answer = StandartResponse(code, msgType, checksum, Nothing, eventTime)
 
                         'Save the json in alternative table
@@ -106,7 +105,7 @@ Public Class JsonListener
                         answer = ProcessSTA(code)
                     Case Else
                         'Create response
-                        Dim checksum As String = CreateMD5(rawText)
+                        Dim checksum As String = rawText.ToMD5Hash()
                         answer = StandartResponse(code, msgType.ToUpper(), checksum, Nothing)
 
                         'Save the json in the db

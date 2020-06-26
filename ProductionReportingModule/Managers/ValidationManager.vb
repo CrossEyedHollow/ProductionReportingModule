@@ -68,112 +68,112 @@ Public Class ValidationManager
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 299 'Warning
             ValidationResult = currentResult
-            ErrorMessage = StandartResponse(msgCode, msgType, CreateMD5(Content), Errors)
+            ErrorMessage = StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         End If
 
         currentResult = VAL_EVT_TIME()
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 299 'Warning
             ValidationResult = currentResult
-            ErrorMessage = StandartResponse(msgCode, msgType, CreateMD5(Content), Errors)
+            ErrorMessage = StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         End If
 
         currentResult = VAL_MSG_TYPE()
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
             ValidationResult = currentResult
-            ErrorMessage = StandartResponse(msgCode, msgType, CreateMD5(Content), Errors)
+            ErrorMessage = StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         End If
 
         currentResult = VAL_FIE_FORMAT()
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
             ValidationResult = currentResult
-            ErrorMessage = StandartResponse(msgCode, msgType, CreateMD5(Content), Errors)
+            ErrorMessage = StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         End If
 
         currentResult = VAL_MSG_CODE_DUPLICATE()
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
             ValidationResult = currentResult
-            ErrorMessage = StandartResponse(msgCode, msgType, CreateMD5(Content), Errors)
+            ErrorMessage = StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         End If
 
         currentResult = VAL_UI_MULT_MSG()
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
             ValidationResult = currentResult
-            ErrorMessage = StandartResponse(msgCode, msgType, CreateMD5(Content), Errors)
+            ErrorMessage = StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         End If
 
         currentResult = VAL_UI_EXIST_APP()
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
             ValidationResult = currentResult
-            ErrorMessage = StandartResponse(msgCode, msgType, CreateMD5(Content), Errors)
+            ErrorMessage = StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         End If
 
         currentResult = VAL_UI_DUPLICATE_APP()
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
             ValidationResult = currentResult
-            ErrorMessage = StandartResponse(msgCode, msgType, CreateMD5(Content), Errors)
+            ErrorMessage = StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         End If
 
         currentResult = VAL_UI_FID_APP()
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
             ValidationResult = currentResult
-            ErrorMessage = StandartResponse(msgCode, msgType, CreateMD5(Content), Errors)
+            ErrorMessage = StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         End If
 
         currentResult = VAL_UI_EXIST_UPUI()
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
             ValidationResult = currentResult
-            ErrorMessage = StandartResponse(msgCode, msgType, CreateMD5(Content), Errors)
+            ErrorMessage = StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         End If
 
         currentResult = VAL_UI_EXIST_AUI()
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
             ValidationResult = currentResult
-            ErrorMessage = StandartResponse(msgCode, msgType, CreateMD5(Content), Errors)
+            ErrorMessage = StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         End If
 
         currentResult = VAL_UI_EXIST_UPUI_SEQ()
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
             ValidationResult = currentResult
-            ErrorMessage = StandartResponse(msgCode, msgType, CreateMD5(Content), Errors)
+            ErrorMessage = StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         End If
 
         currentResult = VAL_UI_EXIST_AUI_SEQ()
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
             ValidationResult = currentResult
-            ErrorMessage = StandartResponse(msgCode, msgType, CreateMD5(Content), Errors)
+            ErrorMessage = StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         End If
 
         currentResult = VAL_UI_EXPIRY()
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
             ValidationResult = currentResult
-            ErrorMessage = StandartResponse(msgCode, msgType, CreateMD5(Content), Errors)
+            ErrorMessage = StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         End If
 
         currentResult = VAL_UI_ORD_REACTIVATION()
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
             ValidationResult = currentResult
-            ErrorMessage = StandartResponse(msgCode, msgType, CreateMD5(Content), Errors)
+            ErrorMessage = StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         End If
 
         currentResult = VAL_UI_ORD_DEACTIVATED()
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
             ValidationResult = currentResult
-            ErrorMessage = StandartResponse(msgCode, msgType, CreateMD5(Content), Errors)
+            ErrorMessage = StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         End If
 
     End Sub
@@ -181,7 +181,7 @@ Public Class ValidationManager
 #Region "Validations"
     Public Function VAL_SEC_HASH() As ValidationResult
         Dim hash As String = Context.Request.Headers("X-OriginalHash")
-        Dim calculatedHash As String = CreateMD5(Content)
+        Dim calculatedHash As String = Content.ToMD5Hash()
         If hash <> calculatedHash Then
             Dim newError As New ValidationError() With {.Error_Code = "INVALID_SIGNATURE",
                 .Error_Descr = "Hash information not matching the message signature."}
@@ -194,7 +194,7 @@ Public Class ValidationManager
     Public Function VAL_SEC_TOKEN() As ValidationResult
         Dim output As ValidationResult = ValidationResult.Valid
         Dim id As HttpListenerBasicIdentity = Context.User.Identity
-        Dim hashPass As String = CreateMD5(id.Password)
+        Dim hashPass As String = ToMD5Hash(id.Password)
 
         'If the user is not found or the password doesnt match
         If Not JsonListener.Users.Keys.Contains(id.Name) OrElse JsonListener.Users(id.Name) <> hashPass Then
