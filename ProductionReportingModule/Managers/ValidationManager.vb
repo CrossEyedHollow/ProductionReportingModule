@@ -61,7 +61,7 @@ Public Class ValidationManager
         Else 'Save the variables for future use
             msgCode = JSON("Code")
             msgType = JSON("Message_Type")
-            If msgType = "IRU" Then Exit Sub
+            If msgType = "IRU" OrElse msgType = "STA" Then Exit Sub
         End If
 
         currentResult = VAL_EVT_24H()
