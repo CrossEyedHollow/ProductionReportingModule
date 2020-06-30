@@ -145,7 +145,7 @@ Public Class JsonListener
         'If match is found
         If result.Rows.Count > 0 Then
             'Get response
-            Dim response As String = result.Rows(0)("fldResponse")
+            Dim response As String = If(IsDBNull(result.Rows(0)("fldResponse")), Nothing, result.Rows(0)("fldResponse"))
 
             'Validate response
             If response.IsNullOrEmpty() Then
