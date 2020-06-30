@@ -376,11 +376,10 @@ Public Class ValidationManager
                     Errors.Add(newError)
                     Return ValidationResult.Invalid
                 End If
-                Return ValidationResult.Valid
             Case Else
                 Return ValidationResult.Valid
         End Select
-        Return True
+        Return ValidationResult.Valid
     End Function
 
     Public Function VAL_UI_DUPLICATE_APP() As ValidationResult
