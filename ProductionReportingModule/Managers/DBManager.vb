@@ -55,6 +55,16 @@ Public Class DBManager
         Return ReadDatabase(query)
     End Function
 
+    Public Function CheckForDeactivated(tableName As String, codes As String(), codesColumnName As String)
+        Dim query = $"SELECT * FROM `{DBName}`.`{tableName}` where fldIDA is not null and {codesColumnName} in ('{String.Join("','", codes)}');"
+        Return ReadDatabase(query)
+    End Function
+
+    Public Function CheckForDeaggregated(tableName As String, codes As String(), codesColumnName As String)
+        Dim query = $"SELECT * FROM `{DBName}`.`{tableName}` where fldEUD is not null and {codesColumnName} in ('{String.Join("','", codes)}');"
+        Return ReadDatabase(query)
+    End Function
+
     Public Sub UpdateDatabase(index As Integer, response As String)
         Dim query As String = AssembleUpdateRepDateQuery(index, response)
         Execute(query)
