@@ -10,7 +10,7 @@ Public Class JsonListener
 
     Dim listener As HttpListener
     Shared Property Prefix As String
-    Shared Property Users As Dictionary(Of String, String)
+    Shared Property Users As List(Of User)
 
     Public Sub New()
         listener = New HttpListener()
@@ -26,7 +26,7 @@ Public Class JsonListener
     ''' </summary>
     Public Sub Start()
         Dim thrdListener = New Thread(AddressOf Listen)
-        Users = New Dictionary(Of String, String)
+        Users = New List(Of User)
         Dim db As New DBManager()
         'Get all authenticated users from db
         Dim result As DataTable = db.GetAuthenticatedUsers()
@@ -35,8 +35,9 @@ Public Class JsonListener
         For Each row As DataRow In result.Rows
             Dim user As String = row("fldUser")
             Dim pass As String = row("fldPassword")
-            'If user = String.Empty Then user = "_"
-            Users.Add(user, pass)
+            Dim fldSecondary As String = CBool(row("fldSecondary"))
+
+            Users.Add(New User() With {.Name = user, .Password = pass, .IsSecondary = fldSecondary})
         Next
 
         listener.Start()
@@ -86,33 +87,37 @@ Public Class JsonListener
 
                 'Parse the incoming msg
                 Dim json As JObject = vManager.JSON
-                Dim msgType As String = json("Message_Type")
-                Dim code As String = json("Code")
+                Dim msgType As String = vManager.msgType
+                Dim code As String = vManager.msgCode
 
                 'Assemble respective answer
-                Select Case msgType.ToUpper()
-                    Case "IRU"
-                        'Assemble response that mimics the secondary repository standary response
-                        Dim eventTime As Date = ParseTime(json("Event_Time"))
-                        Dim checksum As String = rawText.ToMD5Hash()
-                        answer = StandartResponse(code, msgType, checksum, Nothing, eventTime)
+                'If message is coming from the secondary rep
+                If vManager.MsgFromSecondary Then
+                    'Assemble response that mimics the secondary repository standary response
+                    Dim eventTime As Date = ParseTime(json("Event_Time"))
+                    Dim checksum As String = rawText.ToMD5Hash()
+                    answer = StandartResponse(code, msgType, checksum, Nothing, eventTime)
 
-                        'Save the json in alternative table
-                        If db.InsertRawJson("tbljsonsecondary", rawText, msgType.ToUpper()) Then
-                            Output.ToConsole("New IRU was received from secondary repository and was sent to the Database")
-                        End If
-                    Case "STA"
-                        answer = ProcessSTA(code)
-                    Case Else
-                        'Create response
-                        Dim checksum As String = rawText.ToMD5Hash()
-                        answer = StandartResponse(code, msgType.ToUpper(), checksum, Nothing)
+                    'Save the json in alternative table
+                    If db.InsertRawJson("tbljsonsecondary", rawText, msgType.ToUpper()) Then
+                        Output.ToConsole("New IRU was received from secondary repository and was sent to the Database")
+                    End If
+                Else
+                    'Message is comming from the local machine
+                    Select Case msgType.ToUpper()
+                        Case "STA"
+                            answer = ProcessSTA(code)
+                        Case Else
+                            'Create response
+                            Dim checksum As String = rawText.ToMD5Hash()
+                            answer = StandartResponse(code, msgType.ToUpper(), checksum, Nothing)
 
-                        'Save the json in the db
-                        If db.InsertRawJson(DBManager.TableName, rawText, msgType.ToUpper(), code) Then
-                            Output.ToConsole("New Json sent to the Database")
-                        End If
-                End Select
+                            'Save the json in the db
+                            If db.InsertRawJson(DBManager.TableName, rawText, msgType.ToUpper(), code) Then
+                                Output.ToConsole("New Json sent to the Database")
+                            End If
+                    End Select
+                End If
 
                 'This is needed to return Warnings
                 If vManager.Errors.Count > 0 Then

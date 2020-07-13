@@ -135,6 +135,7 @@
   <ItemGroup>
     <Compile Include="HelperClass\Extenders.vb" />
     <Compile Include="HelperClass\Convertor.vb" />
+    <Compile Include="HelperClass\User.vb" />
     <Compile Include="Managers\DBBase.vb" />
     <Compile Include="Managers\DBManager.vb" />
     <Compile Include="HelperClass\Enums.vb" />

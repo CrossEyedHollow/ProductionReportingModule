@@ -16,8 +16,10 @@ Public Class ValidationManager
     Public Property Content As String
     Public Property JSON As JObject
 
+    Public Property MsgFromSecondary As Boolean
     Public Property msgType As String
     Public Property msgCode As String
+    Public Property Sender As User
 
     Public Sub Validate(message As HttpListenerContext)
         Context = message
@@ -61,7 +63,8 @@ Public Class ValidationManager
         Else 'Save the variables for future use
             msgCode = JSON("Code")
             msgType = JSON("Message_Type")
-            If msgType = "IRU" OrElse msgType = "STA" Then Exit Sub
+            'If the message comes from the secondary repository or it's a status message, don't validate
+            If Sender.IsSecondary OrElse msgType = "STA" Then Exit Sub
         End If
 
         currentResult = VAL_EVT_24H()
@@ -196,8 +199,10 @@ Public Class ValidationManager
         Dim id As HttpListenerBasicIdentity = Context.User.Identity
         Dim hashPass As String = ToMD5Hash(id.Password)
 
+        Sender = JsonListener.Users.FirstOrDefault(Function(x) x.Name = id.Name)
+
         'If the user is not found or the password doesnt match
-        If Not JsonListener.Users.Keys.Contains(id.Name) OrElse JsonListener.Users(id.Name) <> hashPass Then
+        If Sender Is Nothing OrElse Sender.Password <> hashPass Then
             ReportTools.Output.Report($"Bad user or password, user: '{id.Name}', pass: '{id.Password}'.")
             Dim newError As New ValidationError() With {.Error_Code = "INVALID_OR_EXPIRED_TOKEN", .Error_Descr = "Authentication failed"}
             Errors.Add(newError)
