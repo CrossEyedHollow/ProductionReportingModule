@@ -17,6 +17,11 @@ Public Class DBManager
         Return ReadDatabase(query)
     End Function
 
+    Public Function Check_aUI(code As String) As DataTable
+        Dim query As String = $"SELECT * FROM `{DBName}`.`tblaggregatedcodes` where fldPrintCode = '{code}' AND fldEUD IS NOT NULL;"
+        Return ReadDatabase(query)
+    End Function
+
     Public Function CheckF_ID(id As String) As DataTable
         Dim query As String = $"SELECT fldF_ID FROM `{DBName}`.`tblfacility` WHERE fldF_ID = '{id}';"
         Return ReadDatabase(query)

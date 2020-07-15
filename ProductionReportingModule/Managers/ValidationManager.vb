@@ -179,6 +179,13 @@ Public Class ValidationManager
         '    ErrorMessage = StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         'End If
 
+        currentResult = VAL_UI_ORD_AGG_MULT()
+        If currentResult <> ValidationResult.Valid Then
+            ErrorHTTPCode = 400
+            ValidationResult = currentResult
+            ErrorMessage = StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
+        End If
+
     End Sub
 
 #Region "Validations"
@@ -564,7 +571,6 @@ Public Class ValidationManager
         End Select
     End Function
 
-    'ASAP
     Public Function VAL_UI_ORD_DEACTIVATED() As ValidationResult
         Dim db As New DBManager()
         Dim output As Boolean = True
@@ -602,31 +608,48 @@ Public Class ValidationManager
             Case "EDP", "ERP", "ETL", "EVR"
                 'upUIs
                 'aUIs
-
-
+                Dim upUIs As String() = JSON.Item("upUIs").ToObject(Of String())
+                Dim aUIs As String() = JSON.Item("aUIs").ToObject(Of String())
+                Dim aggType As Integer = JSON("UI_Type").ToObject(Of Integer)
+                Select Case aggType
+                    Case 1 'unit level ui
+                        output = Not CheckForDeactivated("tblprimarycodes", upUIs, "fldPrintCode")
+                    Case 2 'Aggregated ui
+                        output = Not CheckForDeactivated("tblaggregatedcodes", aUIs, "fldPrintCode")
+                    Case 3 'Both
+                        output = (Not CheckForDeactivated("tblprimarycodes", upUIs, "fldPrintCode")) And (Not CheckForDeactivated("tblaggregatedcodes", aUIs, "fldPrintCode"))
+                    Case Else
+                        Throw New Exception($"Unexpected value for UI_Type: {aggType}")
+                End Select
             Case "EUD"
                 'aUI
+                Return ValidationResult.Valid
             Case Else
                 Return ValidationResult.Valid
         End Select
         Return If(output, ValidationResult.Valid, ValidationResult.Invalid)
     End Function
 
-    Private Function CheckForDeactivated(table As String, codes As String(), codesField As String) As Boolean
+    Public Function VAL_UI_ORD_AGG_MULT() As ValidationResult
         Dim db As New DBManager()
-        Dim result As DataTable = db.CheckForDeactivated(table, codes, codesField)
-        If result.Rows.Count > 0 Then
-            'Create new error
-            Dim errorUIs As String() = result.ColumnToArray(codesField)
-            Dim newError As New ValidationError() With {
-                              .Error_Code = "UI_DEACTIVATED",
-                              .Error_Descr = $"Presence of UIs in a message after being deactivated.",
-                              .Error_Data = $"{String.Join("#", errorUIs)}"}
-            Errors.Add(newError)
-            Return True
-        Else
-            Return False
-        End If
+        Select Case msgType
+            Case "EPA"
+                Dim aUI As String = JSON("aUI")
+                Dim result As DataTable = db.Check_aUI(aUI)
+                If result.Rows.Count > 0 Then
+                    'Create new error
+                    Dim newError As New ValidationError() With {
+                        .Error_Code = "MULTIPLE_AGGREGATION",
+                        .Error_Descr = $"ERROR: VAL_UI_ORD_AGG_MULT, Packaging out of sequence for components aggregation by manufacturers/importers is not expected nor allowed when aggregation is in progress with components produced in EU (AWAITING_IN_STOCK/EPA_EU_NOT_IN_STOCK_PRIMARY) -",
+                        .Error_Data = aUI}
+                    Errors.Add(newError)
+                    Return ValidationResult.Invalid
+                End If
+            Case Else
+                'If the UI exists and is not deaggregated, validation fails
+                Return ValidationResult.Valid
+        End Select
+        Return ValidationResult.Valid
     End Function
 
     Public Function VAL_EVT_24H() As ValidationResult
@@ -665,6 +688,23 @@ Public Class ValidationManager
         End Select
     End Function
 #End Region
+
+    Private Function CheckForDeactivated(table As String, codes As String(), codesField As String) As Boolean
+        Dim db As New DBManager()
+        Dim result As DataTable = db.CheckForDeactivated(table, codes, codesField)
+        If result.Rows.Count > 0 Then
+            'Create new error
+            Dim errorUIs As String() = result.ColumnToArray(codesField)
+            Dim newError As New ValidationError() With {
+                              .Error_Code = "UI_DEACTIVATED",
+                              .Error_Descr = $"Presence of UIs in a message after being deactivated.",
+                              .Error_Data = $"{String.Join("#", errorUIs)}"}
+            Errors.Add(newError)
+            Return True
+        Else
+            Return False
+        End If
+    End Function
 
     Private Function CheckForDuplicates(uis As String) As Boolean
         'upUI
