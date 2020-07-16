@@ -140,7 +140,7 @@
     <Compile Include="Managers\DBManager.vb" />
     <Compile Include="HelperClass\Enums.vb" />
     <Compile Include="HelperClass\Global.vb" />
-    <Compile Include="Managers\JsonDatetime.vb" />
+    <Compile Include="HelperClass\JsonDatetime.vb" />
     <Compile Include="Managers\ValidationManager.vb" />
     <Compile Include="Workers\JsonListener.vb" />
     <Compile Include="Managers\JsonManager.vb" />
