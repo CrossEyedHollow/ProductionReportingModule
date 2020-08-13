@@ -207,6 +207,7 @@ Public Class ValidationManager
         Dim hashPass As String = ToMD5Hash(id.Password)
 
         Sender = JsonListener.Users.FirstOrDefault(Function(x) x.Name = id.Name)
+        MsgFromSecondary = Sender.IsSecondary
 
         'If the user is not found or the password doesnt match
         If Sender Is Nothing OrElse Sender.Password <> hashPass Then

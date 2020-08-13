@@ -35,7 +35,7 @@ Public Class JsonListener
         For Each row As DataRow In result.Rows
             Dim user As String = row("fldUser")
             Dim pass As String = row("fldPassword")
-            Dim fldSecondary As String = CBool(row("fldSecondary"))
+            Dim fldSecondary As Boolean = CBool(row("fldSecondary"))
 
             Users.Add(New User() With {.Name = user, .Password = pass, .IsSecondary = fldSecondary})
         Next
@@ -99,7 +99,7 @@ Public Class JsonListener
 
                     'Save the json in alternative table
                     If db.InsertRawJson("tbljsonsecondary", rawText, msgType.ToUpper()) Then
-                        Output.ToConsole("New IRU was received from secondary repository and was sent to the Database")
+                        Output.ToConsole("New message was received from secondary repository and was sent to the Database")
                     End If
                 Else
                     'Message is comming from the local machine
