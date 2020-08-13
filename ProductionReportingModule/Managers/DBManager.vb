@@ -60,6 +60,11 @@ Public Class DBManager
         Return ReadDatabase(query)
     End Function
 
+    Public Function CheckForNewRows(table As String) As DataTable
+        Dim query As String = $"SELECT * FROM `{DBName}`.`{table}` WHERE fldRep IS NULL;"
+        Return ReadDatabase(query)
+    End Function
+
     Public Function CheckForDeactivated(tableName As String, codes As String(), codesColumnName As String)
         Dim query = $"SELECT * FROM `{DBName}`.`{tableName}` where fldIDA is not null and {codesColumnName} in ('{String.Join("','", codes)}');"
         Return ReadDatabase(query)
@@ -103,7 +108,7 @@ Public Class DBManager
     End Function
 
     Private Function AssembleUpdateRepDateQuery(index As Integer, response As String)
-        Return $"UPDATE `{DBName}`.`{TableName}` SET {RepColumn} = NOW(), fldResponse = '{response}' WHERE fldIndex = {index};"
+        Return $"UPDATE `{DBName}`.`{TableName}` SET {RepColumn} = NOW(), fldResponse = '{response.Replace("'", "\'")}' WHERE fldIndex = {index};"
     End Function
 
 #End Region

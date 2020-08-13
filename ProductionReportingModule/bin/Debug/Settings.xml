@@ -27,4 +27,15 @@
 		<fldUsername>2h4jujfihp9732jmsp715te7p6</fldUsername>
 		<fldPassword>tgfmn2oh5sq14di122hvk08mcrrivnkm0b8luiteosm04h0c4a5</fldPassword>
 	</tblJSONServer>
+	<tblFacility>
+		<fldEnabled>0</fldEnabled>
+		<!--		Authentication Types:
+				NoAuth = 0,
+				Basic = 1								
+		-->
+		<fldAuthentication>1</fldAuthentication>
+		<fldGlobalURL>http://10.1.22.20:3125</fldGlobalURL>
+		<fldUsername>primary</fldUsername>
+		<fldPassword>kasibg1234</fldPassword>
+	</tblFacility>
 </NewDataSet>

@@ -3,33 +3,25 @@ Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Linq
 Imports RestSharp
 
-Public Module JsonManager
+Public Class JsonManager
 
+    Public authType As AuthenticationType
     Private client As RestClient
     Private serverAcc As String
     Private serverPass As String
-    Private authType As AuthenticationType
     Private token As AuthenticationToken
-
-    Public Property GlobalURL As String
-    Public Property OperationalURL As String
-    Public Property TransactionalURL As String
-    Public Property RecallURL As String
-    Public Property QueryURL As String
 
     ''' <summary>
     ''' Call this method to initialize the needed internal objects 
     ''' </summary>
     ''' <param name="url"></param>
-    Public Sub Init(url As String)
+    Public Sub New(url As String)
         client = New RestClient(url)
-        SetURLs(url)
         authType = AuthenticationType.NoAuth
     End Sub
 
-    Public Sub Init(url As String, username As String, password As String, authenticationType As AuthenticationType, authToken As AuthenticationToken)
+    Public Sub New(url As String, username As String, password As String, authenticationType As AuthenticationType, Optional authToken As AuthenticationToken = Nothing)
         client = New RestClient(url)
-        SetURLs(url)
         serverAcc = username
         serverPass = password
         authType = authenticationType
@@ -38,36 +30,41 @@ Public Module JsonManager
 
     Public Function Post(json As String) As String
         Dim request As RestRequest = New RestRequest(Method.POST)
-
         Dim byteBody As Byte() = Encoding.UTF8.GetBytes(json)
         Dim hash As String = json.ToMD5Hash()
 
         Select Case authType
+            Case AuthenticationType.Basic
+                Dim strBaseCredentials As String = Convert.ToBase64String(Encoding.ASCII.GetBytes(String.Format("{0}:{1}", serverAcc, serverPass)))
+                request.AddHeader("Authorization", $"Basic {strBaseCredentials}")
+
             Case AuthenticationType.Bearer
                 'If there is no valid token avaible return
                 If Not token.IsValid Then Throw New Exception("No valid token avaible for the operation")
+
                 'Add the headers and body
                 request.AddHeader("Authorization", token.Value)
+
             Case AuthenticationType.NoAuth
+                'Add the headers and body
+                request.AddHeader("Authorization", "Basic Og==")
             Case Else
                 Throw New NotImplementedException($"{authType.ToString()} not implemented yet")
         End Select
 
-        request.AddHeader("cache-control", "no-cache")
         request.AddHeader("Content-Length", byteBody.Length)
-        request.AddHeader("content-type", "application/json")
         request.AddHeader("X-OriginalHash", hash)
+        request.AddHeader("cache-control", "no-cache")
+        request.AddHeader("content-type", "application/json; charset=utf-8")
         request.AddParameter("application/json", json, ParameterType.RequestBody)
 
-        'TODO add rejected message archivation
         'Execute
         Dim response = client.Execute(request)
-        If Not response.IsSuccessful Then
-            Throw New Exception($"POST operation failed, status code: {response.StatusCode.ToString()}")
-        End If
 
-        'Dim jsonResponse As JObject = JObject.Parse(response.Content)
-        'Dim recallCode As String = jsonResponse.Item("Code")
+        'If Not response.IsSuccessful Then
+        '    Throw New Exception($"POST operation failed, status code: {response.StatusCode.ToString()}")
+        'End If
+
         Return response.Content
     End Function
 
@@ -76,7 +73,7 @@ Public Module JsonManager
         Return Post(json)
     End Function
 
-    Public Function StandartResponse(code As String, msgType As String, checksum As String, errors As List(Of ValidationError), Optional expireDate As Date = Nothing) As String
+    Public Shared Function StandartResponse(code As String, msgType As String, checksum As String, errors As List(Of ValidationError), Optional expireDate As Date = Nothing) As String
         Dim output As JObject = New JObject()
         output("Code") = code
         output("Message_Type") = msgType
@@ -109,14 +106,8 @@ Public Module JsonManager
     '    End Using
     'End Function
 
-    Private Sub SetURLs(url As String)
-        GlobalURL = url
-        OperationalURL = url & "/operational"
-        TransactionalURL = url & "/transactional"
-        RecallURL = url & "/recall"
-        QueryURL = url & "/query"
-    End Sub
-End Module
+
+End Class
 
 Public Class AuthenticationToken
     Public Property Value As String = ""

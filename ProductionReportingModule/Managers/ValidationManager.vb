@@ -33,7 +33,7 @@ Public Class ValidationManager
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 401
             ValidationResult = currentResult
-            ErrorMessage = StandartResponse(Nothing, Nothing, Nothing, Errors)
+            ErrorMessage = JsonManager.StandartResponse(Nothing, Nothing, Nothing, Errors)
             Exit Sub
         End If
 
@@ -42,7 +42,7 @@ Public Class ValidationManager
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
             ValidationResult = currentResult
-            ErrorMessage = StandartResponse(Nothing, Nothing, Nothing, Errors)
+            ErrorMessage = JsonManager.StandartResponse(Nothing, Nothing, Nothing, Errors)
             Exit Sub
         End If
 
@@ -50,7 +50,7 @@ Public Class ValidationManager
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
             ValidationResult = currentResult
-            ErrorMessage = StandartResponse(Nothing, Nothing, Nothing, Errors)
+            ErrorMessage = JsonManager.StandartResponse(Nothing, Nothing, Nothing, Errors)
             Exit Sub
         End If
 
@@ -58,7 +58,7 @@ Public Class ValidationManager
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
             ValidationResult = currentResult
-            ErrorMessage = StandartResponse(Nothing, Nothing, Nothing, Errors)
+            ErrorMessage = JsonManager.StandartResponse(Nothing, Nothing, Nothing, Errors)
             Exit Sub
         Else 'Save the variables for future use
             msgCode = JSON("Code")
@@ -71,119 +71,119 @@ Public Class ValidationManager
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 299 'Warning
             ValidationResult = currentResult
-            ErrorMessage = StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
+            ErrorMessage = JsonManager.StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         End If
 
         currentResult = VAL_EVT_TIME()
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 299 'Warning
             ValidationResult = currentResult
-            ErrorMessage = StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
+            ErrorMessage = JsonManager.StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         End If
 
         currentResult = VAL_MSG_TYPE()
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
             ValidationResult = currentResult
-            ErrorMessage = StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
+            ErrorMessage = JsonManager.StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         End If
 
         currentResult = VAL_FIE_FORMAT()
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
             ValidationResult = currentResult
-            ErrorMessage = StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
+            ErrorMessage = JsonManager.StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         End If
 
         currentResult = VAL_MSG_CODE_DUPLICATE()
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
             ValidationResult = currentResult
-            ErrorMessage = StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
+            ErrorMessage = JsonManager.StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         End If
 
         currentResult = VAL_UI_MULT_MSG()
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
             ValidationResult = currentResult
-            ErrorMessage = StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
+            ErrorMessage = JsonManager.StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         End If
 
         currentResult = VAL_UI_EXIST_APP()
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
             ValidationResult = currentResult
-            ErrorMessage = StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
+            ErrorMessage = JsonManager.StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         End If
 
         currentResult = VAL_UI_DUPLICATE_APP()
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
             ValidationResult = currentResult
-            ErrorMessage = StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
+            ErrorMessage = JsonManager.StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         End If
 
         currentResult = VAL_UI_FID_APP()
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
             ValidationResult = currentResult
-            ErrorMessage = StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
+            ErrorMessage = JsonManager.StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         End If
 
         currentResult = VAL_UI_EXIST_UPUI()
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
             ValidationResult = currentResult
-            ErrorMessage = StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
+            ErrorMessage = JsonManager.StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         End If
 
         currentResult = VAL_UI_EXIST_AUI()
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
             ValidationResult = currentResult
-            ErrorMessage = StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
+            ErrorMessage = JsonManager.StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         End If
 
         currentResult = VAL_UI_EXIST_UPUI_SEQ()
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
             ValidationResult = currentResult
-            ErrorMessage = StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
+            ErrorMessage = JsonManager.StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         End If
 
         currentResult = VAL_UI_EXIST_AUI_SEQ()
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
             ValidationResult = currentResult
-            ErrorMessage = StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
+            ErrorMessage = JsonManager.StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         End If
 
         currentResult = VAL_UI_EXPIRY()
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
             ValidationResult = currentResult
-            ErrorMessage = StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
+            ErrorMessage = JsonManager.StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         End If
 
         'currentResult = VAL_UI_ORD_REACTIVATION()
         'If currentResult <> ValidationResult.Valid Then
         '    ErrorHTTPCode = 400
         '    ValidationResult = currentResult
-        '    ErrorMessage = StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
+        '    ErrorMessage = JsonManager.StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         'End If
 
         'currentResult = VAL_UI_ORD_DEACTIVATED()
         'If currentResult <> ValidationResult.Valid Then
         '    ErrorHTTPCode = 400
         '    ValidationResult = currentResult
-        '    ErrorMessage = StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
+        '    ErrorMessage = JsonManager.StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         'End If
 
         currentResult = VAL_UI_ORD_AGG_MULT()
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
             ValidationResult = currentResult
-            ErrorMessage = StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
+            ErrorMessage = JsonManager.StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         End If
 
     End Sub

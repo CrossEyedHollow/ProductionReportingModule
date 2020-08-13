@@ -62,7 +62,6 @@ Public Class JsonListener
         End While
     End Sub
 
-
     Public Sub ProccessMessage(context As HttpListenerContext)
         Try
             'Declare variables
@@ -94,9 +93,9 @@ Public Class JsonListener
                 'If message is coming from the secondary rep
                 If vManager.MsgFromSecondary Then
                     'Assemble response that mimics the secondary repository standary response
-                    Dim eventTime As Date = ParseTime(json("Event_Time"))
+                    Dim eventTime As Date = ParseTime(json("Event_Time")) 'A msg coming from the router may not have this field TODO
                     Dim checksum As String = rawText.ToMD5Hash()
-                    answer = StandartResponse(code, msgType, checksum, Nothing, eventTime)
+                    answer = JsonManager.StandartResponse(code, msgType, checksum, Nothing, eventTime)
 
                     'Save the json in alternative table
                     If db.InsertRawJson("tbljsonsecondary", rawText, msgType.ToUpper()) Then
@@ -110,7 +109,7 @@ Public Class JsonListener
                         Case Else
                             'Create response
                             Dim checksum As String = rawText.ToMD5Hash()
-                            answer = StandartResponse(code, msgType.ToUpper(), checksum, Nothing)
+                            answer = JsonManager.StandartResponse(code, msgType.ToUpper(), checksum, Nothing)
 
                             'Save the json in the db
                             If db.InsertRawJson(DBManager.TableName, rawText, msgType.ToUpper(), code) Then
@@ -130,7 +129,7 @@ Public Class JsonListener
         Catch ex As Exception
             'If something fails, respond with error message and log the error
             Dim reason As New ValidationError() With {.Error_Code = "SYSTEM_ERROR", .Error_Descr = $"Failed to process incoming message, reason: {ex.Message}"}
-            Dim response As String = StandartResponse(Nothing, Nothing, Nothing, New List(Of ValidationError) From {reason})
+            Dim response As String = JsonManager.StandartResponse(Nothing, Nothing, Nothing, New List(Of ValidationError) From {reason})
             Output.Report(reason.Error_Descr)
             Try
                 context.Respond(response, 500) '500 = Internal server error
