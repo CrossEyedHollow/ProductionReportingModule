@@ -15,7 +15,7 @@ Public Class JsonSender
     Public Shared Property FacilityURL As String
 
     Public Sub New(fURL As String, secondaryURL As String)
-        SetURLs(GlobalURL)
+        SetURLs(secondaryURL)
         FacilityURL = fURL
 
     End Sub

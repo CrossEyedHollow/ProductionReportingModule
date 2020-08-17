@@ -16,7 +16,7 @@
 		<fldColRep>fldRep</fldColRep> <!-- Column filled with date during replication -->
 	</tblDBSettings>
 	<tblJSONServer>
-		<fldEnabled>0</fldEnabled>
+		<fldEnabled>1</fldEnabled>
 		<!--		Authentication Types:
 				NoAuth = 0,
 				Basic = 1								

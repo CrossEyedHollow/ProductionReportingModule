@@ -68,7 +68,7 @@ Module Main
         tokenManager = New TokenManager(tokenURL, acc, pass, GetAuthType(authType))
 
         'Instantiate the sender
-        Sender = New JsonSender(globalUrl, fURL) With
+        Sender = New JsonSender(fURL, globalUrl) With
             {
                 .Secondary = New JsonManager(globalUrl, Nothing, Nothing, AuthenticationType.Bearer, tokenManager.AuthToken),
                 .Facility = New JsonManager(fURL, f_Acc, f_Pass, GetAuthType(f_AuthType))
