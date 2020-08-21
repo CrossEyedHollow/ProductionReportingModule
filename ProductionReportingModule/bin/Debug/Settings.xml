@@ -15,7 +15,7 @@
 		<fldColJson>fldJson</fldColJson> <!--The column that holds the raw JSON string -->
 		<fldColRep>fldRep</fldColRep> <!-- Column filled with date during replication -->
 	</tblDBSettings>
-	<tblJSONServer>
+	<tblJSONServer> <!-- These are the settings for the secondary repository -->
 		<fldEnabled>1</fldEnabled>
 		<!--		Authentication Types:
 				NoAuth = 0,
@@ -27,7 +27,7 @@
 		<fldUsername>2h4jujfihp9732jmsp715te7p6</fldUsername>
 		<fldPassword>tgfmn2oh5sq14di122hvk08mcrrivnkm0b8luiteosm04h0c4a5</fldPassword>
 	</tblJSONServer>
-	<tblFacility>
+	<tblFacility> <!-- These are the settings for the facility -->
 		<fldEnabled>0</fldEnabled>
 		<!--		Authentication Types:
 				NoAuth = 0,

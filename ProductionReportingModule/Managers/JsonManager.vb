@@ -4,7 +4,7 @@ Imports Newtonsoft.Json.Linq
 Imports RestSharp
 
 Public Class JsonManager
-
+    Public Property Enabled As Boolean
     Public authType As AuthenticationType
     Private client As RestClient
     Private serverAcc As String

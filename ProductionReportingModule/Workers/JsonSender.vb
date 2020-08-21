@@ -17,7 +17,6 @@ Public Class JsonSender
     Public Sub New(fURL As String, secondaryURL As String)
         SetURLs(secondaryURL)
         FacilityURL = fURL
-
     End Sub
 
     Public Sub Start()
@@ -29,12 +28,17 @@ Public Class JsonSender
         While Main.IsRunning
             'Check the database
             Dim db = New DBManager()
-            Dim result As DataTable = db.CheckForNewRows()
+            Dim tblJson As DataTable = New DataTable()
+            Dim tblJsonSecondary As DataTable = New DataTable()
+
+            'Check each table if required
+            If Secondary.Enabled Then tblJson = db.CheckForNewRows()
+            If Facility.Enabled Then tblJsonSecondary = db.CheckForNewRows()
 
             'If any new jsons are avaible
-            If result.Rows.Count > 0 Then
+            If tblJson.Rows.Count > 0 Then
                 'Send to repository
-                For Each row As DataRow In result.Rows
+                For Each row As DataRow In tblJson.Rows
                     Try
                         Dim rawjson As String = row(DBManager.JsonColumn)
                         Dim json As JObject = JObject.Parse(rawjson)
@@ -59,9 +63,29 @@ Public Class JsonSender
 
                         'Update the Rep coulumn in the DB
                         db.UpdateDatabase(row("fldIndex"), response)
-                        Output.Report($"JSON object with id: {row("fldIndex")} sent to repository, updating database...")
+                        Output.Report($"JSON object with id: {row("fldIndex")} sent to secondary repository.")
                     Catch ex As Exception
-                        Output.Report($"Post operation failed: {ex.Message}")
+                        Output.Report($"Primary post operation failed: {ex.Message}")
+                    End Try
+                Next
+            ElseIf tblJsonSecondary.Rows.Count > 0 Then
+                For Each row As DataRow In tblJsonSecondary.Rows
+                    Try
+                        Dim rawjson As String = row(DBManager.JsonColumn)
+                        Dim json As JObject = JObject.Parse(rawjson)
+                        Dim msgType As String = json.Item("Message_Type")
+
+                        'Set message time
+                        json("Message_Time_long") = GetTimeLong()
+
+                        'Send
+                        Dim response As String = Facility.Post(json.ToString())
+
+                        'Update fldRep in the secondary table
+                        db.UpdateFldRep(row("fldIndex"), "tbljsonsecondary")
+                        Output.Report($"JSON object with id: {row("fldIndex")} sent to facility.")
+                    Catch ex As Exception
+                        Output.Report($"Facility post operation failed: {ex.Message}")
                     End Try
                 Next
             End If

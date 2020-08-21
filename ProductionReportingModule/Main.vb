@@ -5,7 +5,6 @@ Module Main
     Public tokenManager As TokenManager
     Public Property Sender As JsonSender
     Public Property IsRunning As Boolean
-    Public Property senderEnabled As Boolean
 
     Sub Main()
         IsRunning = True
@@ -32,9 +31,7 @@ Module Main
         'Wait
         Thread.Sleep(3000)
 
-        If senderEnabled Then
-            Sender.Start()
-        End If
+        Sender.Start()
 
         'Stay alive
         While Thread.CurrentThread.IsAlive
@@ -50,28 +47,29 @@ Module Main
 
         'Get the row with the JSON server setting
         Dim tblSecondary = Setting.Tables("tblJSONServer")(0)
-        Dim tokenURL As String = tblSecondary("fldTokenAddress")
-        Dim globalUrl As String = tblSecondary("fldGlobalURL")
-        Dim acc As String = tblSecondary("fldUsername")
-        Dim pass As String = tblSecondary("fldPassword")
-        Dim authType As String = tblSecondary("fldAuthentication")
-        senderEnabled = Convert.ToInt32(tblSecondary("fldEnabled"))
+        Dim s_TokenURL As String = tblSecondary("fldTokenAddress")
+        Dim s_GlobalUrl As String = tblSecondary("fldGlobalURL")
+        Dim s_Acc As String = tblSecondary("fldUsername")
+        Dim s_Pass As String = tblSecondary("fldPassword")
+        Dim s_AuthType As String = tblSecondary("fldAuthentication")
+        Dim s_Enabled = Convert.ToInt32(tblSecondary("fldEnabled"))
 
         'Get the facility information
         Dim tblFacility = Setting.Tables("tblFacility")(0)
-        Dim fURL As String = tblFacility("fldGlobalURL")
+        Dim f_URL As String = tblFacility("fldGlobalURL")
         Dim f_Acc As String = tblFacility("fldUsername")
         Dim f_Pass As String = tblFacility("fldPassword")
         Dim f_AuthType As String = tblFacility("fldAuthentication")
+        Dim f_Enabled = Convert.ToInt32(tblFacility("fldEnabled"))
 
         'Create the Token manager
-        tokenManager = New TokenManager(tokenURL, acc, pass, GetAuthType(authType))
+        tokenManager = New TokenManager(s_TokenURL, s_Acc, s_Pass, GetAuthType(s_AuthType))
 
         'Instantiate the sender
-        Sender = New JsonSender(fURL, globalUrl) With
+        Sender = New JsonSender(f_URL, s_GlobalUrl) With
             {
-                .Secondary = New JsonManager(globalUrl, Nothing, Nothing, AuthenticationType.Bearer, tokenManager.AuthToken),
-                .Facility = New JsonManager(fURL, f_Acc, f_Pass, GetAuthType(f_AuthType))
+                .Secondary = New JsonManager(s_GlobalUrl, Nothing, Nothing, AuthenticationType.Bearer, tokenManager.AuthToken) With {.Enabled = s_Enabled},
+                .Facility = New JsonManager(f_URL, f_Acc, f_Pass, GetAuthType(f_AuthType)) With {.Enabled = f_Enabled}
             }
 
         'Get the row with the DataBase settings and initialize

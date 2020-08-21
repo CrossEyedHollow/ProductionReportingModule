@@ -56,7 +56,7 @@ Public Class DBManager
     End Function
 
     Public Function CheckForNewRows() As DataTable
-        Dim query As String = AssembleCheckStatement()
+        Dim query As String = $"SELECT * FROM `{DBName}`.`{TableName}` WHERE {RepColumn} IS NULL;"
         Return ReadDatabase(query)
     End Function
 
@@ -77,6 +77,11 @@ Public Class DBManager
 
     Public Sub UpdateDatabase(index As Integer, response As String)
         Dim query As String = AssembleUpdateRepDateQuery(index, response)
+        Execute(query)
+    End Sub
+
+    Public Sub UpdateFldRep(index As Integer, table As String)
+        Dim query As String = $"UPDATE `{DBName}`.`{table}` SET {RepColumn} = NOW() WHERE fldIndex = {index};"
         Execute(query)
     End Sub
 
@@ -101,10 +106,6 @@ Public Class DBManager
 
     Private Function AssembleInsertRawJsonQuery(table As String, Json As String, type As String) As String
         Return $"INSERT INTO `{DBName}`.`{table}` ({JsonColumn}, fldType) VALUES ('{Json}', '{type}');"
-    End Function
-
-    Private Function AssembleCheckStatement() As String
-        Return $"SELECT * FROM `{DBName}`.`{TableName}` WHERE {RepColumn} IS NULL;"
     End Function
 
     Private Function AssembleUpdateRepDateQuery(index As Integer, response As String)
