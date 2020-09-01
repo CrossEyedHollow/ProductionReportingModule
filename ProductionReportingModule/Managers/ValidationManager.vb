@@ -165,21 +165,28 @@ Public Class ValidationManager
             ErrorMessage = JsonManager.StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         End If
 
-        'currentResult = VAL_UI_ORD_REACTIVATION()
-        'If currentResult <> ValidationResult.Valid Then
-        '    ErrorHTTPCode = 400
-        '    ValidationResult = currentResult
-        '    ErrorMessage = JsonManager.StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
-        'End If
+        currentResult = VAL_UI_ORD_REACTIVATION()
+        If currentResult <> ValidationResult.Valid Then
+            ErrorHTTPCode = 400
+            ValidationResult = currentResult
+            ErrorMessage = JsonManager.StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
+        End If
 
-        'currentResult = VAL_UI_ORD_DEACTIVATED()
-        'If currentResult <> ValidationResult.Valid Then
-        '    ErrorHTTPCode = 400
-        '    ValidationResult = currentResult
-        '    ErrorMessage = JsonManager.StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
-        'End If
+        currentResult = VAL_UI_ORD_DEACTIVATED()
+        If currentResult <> ValidationResult.Valid Then
+            ErrorHTTPCode = 400
+            ValidationResult = currentResult
+            ErrorMessage = JsonManager.StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
+        End If
 
         currentResult = VAL_UI_ORD_AGG_MULT()
+        If currentResult <> ValidationResult.Valid Then
+            ErrorHTTPCode = 400
+            ValidationResult = currentResult
+            ErrorMessage = JsonManager.StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
+        End If
+
+        currentResult = VAL_UI_ORD_DISAGG()
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
             ValidationResult = currentResult
@@ -591,7 +598,7 @@ Public Class ValidationManager
                         Throw New Exception($"Unexpected value for Deact_Type: {aggType}")
                 End Select
             Case "EPA"
-                'Aggregated_UIs1
+                'Aggregated_UIs1 = upUI(L)
                 'Aggregated_UIs2
                 Dim upUIs As String() = JSON.Item("Aggregated_UIs1").ToObject(Of String())
                 Dim aUIs As String() = JSON.Item("Aggregated_UIs2").ToObject(Of String())
@@ -607,7 +614,7 @@ Public Class ValidationManager
                         Throw New Exception($"Unexpected value for Aggregation_Type: {aggType}")
                 End Select
             Case "EDP", "ERP", "ETL", "EVR"
-                'upUIs
+                'upUI(L)
                 'aUIs
                 Dim upUIs As String() = JSON.Item("upUIs").ToObject(Of String())
                 Dim aUIs As String() = JSON.Item("aUIs").ToObject(Of String())
@@ -687,6 +694,32 @@ Public Class ValidationManager
             Case Else
                 Return ValidationResult.Valid
         End Select
+    End Function
+
+    Public Function VAL_UI_ORD_DISAGG() As ValidationResult
+        Dim db As New DBManager()
+        Select Case msgType
+            Case "EDP", "ERP", "ETL", "EVR" 'aUIs
+                'Check the codes for deaggregated
+                Dim codes As String() = JSON("aUIs").ToObject(Of String())
+                Dim result As DataTable = db.CheckForDeaggregated(codes)
+
+                'If any deaggregated codes are found
+                If result.Rows.Count > 0 Then
+                    'Create new error
+                    Dim errorUIs As String() = result.ColumnToArray("fldPrintCode")
+                    Dim newError As New ValidationError() With {
+                                      .Error_Code = "UI_ALREADY_DISAGGREGATED",
+                                      .Error_Descr = $"An aUI that has been disaggregated cannot be part on any product movement prior of being aggregated.",
+                                      .Error_Data = $"{String.Join("#", errorUIs)}"}
+                    Errors.Add(newError)
+                    Return ValidationResult.Invalid
+                End If
+            Case Else 'Skip                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     ip
+                Return ValidationResult.Valid
+        End Select
+
+        Return ValidationResult.Valid
     End Function
 #End Region
 

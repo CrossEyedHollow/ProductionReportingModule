@@ -70,8 +70,15 @@ Public Class DBManager
         Return ReadDatabase(query)
     End Function
 
-    Public Function CheckForDeaggregated(tableName As String, codes As String(), codesColumnName As String)
-        Dim query = $"SELECT * FROM `{DBName}`.`{tableName}` where fldEUD is not null and {codesColumnName} in ('{String.Join("','", codes)}');"
+    Public Function CheckForDeaggregated(codes As String())
+        Dim query = ""
+        query += "SELECT A.*, J.fldDate AS fldEUDDate "
+        query += $"FROM {DBName}.tblaggregatedcodes AS A "
+        query += $"LEFT JOIN (`{DBName}`.tbljson AS J) "
+        query += "ON a.fldEUD = j.fldIndex "
+        query += "WHERE J.fldDate > A.fldAggregatedDate "
+        query += "And A.fldEUD Is Not null "
+        query += $"And A.fldPrintCode in ('{String.Join("','", codes)}');"
         Return ReadDatabase(query)
     End Function
 

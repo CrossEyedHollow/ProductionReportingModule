@@ -2,7 +2,7 @@
 <NewDataSet>  
 	<tblGeneral>
 		<!-- <fldListenerPrefix>https://77.71.114.102:443/</fldListenerPrefix> -->
-		<fldListenerPrefix>https://slance.kasiprimary.eu:3125/</fldListenerPrefix>
+		<fldListenerPrefix>https://127.0.0.1:6969/</fldListenerPrefix>
 		<fldDBCheckTime>10</fldDBCheckTime> <!--Time is in seconds-->
 	</tblGeneral>
 	<tblDBSettings>
@@ -16,7 +16,7 @@
 		<fldColRep>fldRep</fldColRep> <!-- Column filled with date during replication -->
 	</tblDBSettings>
 	<tblJSONServer> <!-- These are the settings for the secondary repository -->
-		<fldEnabled>1</fldEnabled>
+		<fldEnabled>0</fldEnabled>
 		<!--		Authentication Types:
 				NoAuth = 0,
 				Basic = 1								
