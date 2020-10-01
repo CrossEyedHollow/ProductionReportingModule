@@ -20,6 +20,11 @@ Public Module Extenders
     End Function
 
     <Extension()>
+    Public Function IsNullOrEmpty(ByVal array As Array) As Boolean
+        Return (IsDBNull(array) OrElse array Is Nothing) OrElse (array.Length < 1)
+    End Function
+
+    <Extension()>
     Public Function IsNullOrEmpty(ByVal str As String) As Boolean
         Return String.IsNullOrEmpty(str) Or str Is Nothing
     End Function
@@ -52,8 +57,16 @@ Public Module Extenders
 
     <Extension()>
     Public Function ColumnToArray(ByVal dt As DataTable, columnName As String) As String()
+        If dt.Rows.Count < 1 Then Return Nothing
         Return dt.Rows.OfType(Of DataRow).Select(Function(dr) dr.Field(Of String)(columnName)).ToArray()
     End Function
+
+    <Extension()>
+    Public Sub TryAddRange(ByRef list As List(Of String), array As Array)
+        If Not array.IsNullOrEmpty() Then
+            list.AddRange(array)
+        End If
+    End Sub
 
     <Extension()>
     Public Function ToMD5Hash(ByVal input As String) As String

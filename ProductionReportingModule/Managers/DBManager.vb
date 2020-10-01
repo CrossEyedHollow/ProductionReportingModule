@@ -106,6 +106,15 @@ Public Class DBManager
         Dim query As String = $"SELECT * FROM `{DBName}`.`tblaggregatedcodes` WHERE fldPrintCode in ('{String.Join("','", codes)}') AND fldPrintDate < NOW() - INTERVAL 6 MONTH;"
         Return ReadDatabase(query)
     End Function
+
+    Public Function CheckCodeLocation(code As String, msgF_ID As String) As DataTable
+        Dim query As String = $"SELECT * FROM `{DBName}`.`tblaggregatedcodes` WHERE fldCode = '{code}' AND fldLocation <> '{msgF_ID}';"
+        Return ReadDatabase(query)
+    End Function
+    Public Function CheckCodeLocation(codes() As String, msgF_ID As String, table As String) As DataTable
+        Dim query As String = $"SELECT * FROM `{DBName}`.`{table}` WHERE fldCode in ('{String.Join("','", codes)}') AND fldLocation <> '{msgF_ID}';"
+        Return ReadDatabase(query)
+    End Function
 #Region "Queries"
     Private Function AssembleInsertRawJsonQuery(table As String, Json As String, type As String, guid As String) As String
         Return $"INSERT INTO `{DBName}`.`{table}` ({JsonColumn}, fldLocalCode, fldType) VALUES ('{Json}', '{guid}', '{type}');"

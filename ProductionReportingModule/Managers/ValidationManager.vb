@@ -192,7 +192,20 @@ Public Class ValidationManager
             ValidationResult = currentResult
             ErrorMessage = JsonManager.StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         End If
+        'Untested
+        currentResult = VAL_UI_ORD_AGG_FID()
+        If currentResult <> ValidationResult.Valid Then
+            ErrorHTTPCode = 400
+            ValidationResult = currentResult
+            ErrorMessage = JsonManager.StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
+        End If
 
+        currentResult = VAL_UI_ORD_DISPATCH()
+        If currentResult <> ValidationResult.Valid Then
+            ErrorHTTPCode = 400
+            ValidationResult = currentResult
+            ErrorMessage = JsonManager.StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
+        End If
     End Sub
 
 #Region "Validations"
@@ -720,6 +733,144 @@ Public Class ValidationManager
         End Select
 
         Return ValidationResult.Valid
+    End Function
+
+    Public Function VAL_UI_ORD_IMPLDISAGG() As ValidationResult
+        Return ValidationResult.Valid
+    End Function
+
+    Public Function VAL_UI_ORD_AGG_FID() As ValidationResult
+        Dim db As New DBManager()
+
+        Select Case msgType
+            Case "EPA"
+                'Get necessary vars
+                Dim F_ID As String = JSON("F_ID")
+                Dim aggType As Integer = JSON("Aggregation_Type").ToObject(Of Integer)
+                Dim uis As String() = JSON.Item("Aggregated_UIs1").ToObject(Of String())
+                Dim aUIs As String() = JSON.Item("Aggregated_UIs2").ToObject(Of String())
+                Dim err As Boolean = False
+                Dim errCodes As List(Of String) = New List(Of String)
+
+                Select Case aggType
+                    Case 1
+                        'Check for codes with non matching location
+                        Dim result As DataTable = db.CheckCodeLocation(uis, F_ID, Tables.tblprimarycodes.ToString())
+                        'If there are any
+                        If result.Rows.Count > 0 Then
+                            'Flag error
+                            err = True
+                            errCodes.AddRange(result.ColumnToArray("fldPrintCode"))
+                        End If
+                    Case 2
+                        'Check for codes with non matching location
+                        Dim result As DataTable = db.CheckCodeLocation(aUIs, F_ID, Tables.tblaggregatedcodes.ToString())
+                        'If there are any
+                        If result.Rows.Count > 0 Then
+                            'Flag error
+                            err = True
+                            errCodes.AddRange(result.ColumnToArray("fldPrintCode"))
+                        End If
+                    Case 3
+                        'Check both arrays
+                        Dim result As DataTable = db.CheckCodeLocation(uis, F_ID, Tables.tblprimarycodes.ToString())
+                        Dim result2 As DataTable = db.CheckCodeLocation(aUIs, F_ID, Tables.tblaggregatedcodes.ToString())
+                        'If any one the arrays have non matching locations
+                        If result.Rows.Count > 0 OrElse result2.Rows.Count > 0 Then
+                            err = True
+                            errCodes.TryAddRange(result.ColumnToArray("fldPrintCode"))
+                            errCodes.TryAddRange(result2.ColumnToArray("fldPrintCode"))
+                        End If
+                End Select
+                'If erronous data was found
+                If err Then
+                    'Generate error
+                    Dim newError As New ValidationError() With {
+                        .Error_Code = "LOCATION_MISMATCH",
+                        .Error_Descr = "Aggregation and the disaggregation events must happen at the same facility (FID) where the products have been either created or arrived",
+                        .Error_Data = String.Join("#", errCodes)}
+                    Errors.Add(newError)
+                    Return ValidationResult.Invalid
+                Else Return ValidationResult.Valid
+                End If
+
+            Case "EUD"
+                Dim F_ID As String = JSON("F_ID")
+                Dim aUI As String = JSON("aUI")
+                'Check in db
+                Dim result As DataTable = db.CheckCodeLocation(aUI, F_ID)
+
+                'If the code is found AND the location is different from the sent F_ID
+                If result.Rows.Count > 0 Then
+                    'Generate error
+                    Dim newError As New ValidationError() With {.Error_Code = "LOCATION_MISMATCH", .Error_Descr = "Aggregation and the disaggregation events must happen at the same facility (FID) where the products have been either created or arrived"}
+                    Errors.Add(newError)
+                    Return ValidationResult.Invalid
+                Else
+                    Return ValidationResult.Valid
+                End If
+
+            Case Else 'Do not check message
+                Return ValidationResult.Valid
+        End Select
+    End Function
+
+    Public Function VAL_UI_ORD_DISPATCH() As ValidationResult
+        Dim db As New DBManager()
+        Select Case msgType
+            Case "EDP"
+                Dim F_ID As String = JSON("F_ID")
+                Dim uiType As Integer = JSON("UI_Type").ToObject(Of Integer)
+                Dim uis As String() = JSON.Item("upUIs").ToObject(Of String())
+                Dim aUIs As String() = JSON.Item("aUIs").ToObject(Of String())
+                Dim err As Boolean = False
+                Dim errCodes As List(Of String) = New List(Of String)
+
+                Select Case uiType
+                    Case 1
+                        'Check for codes with non matching location
+                        Dim result As DataTable = db.CheckCodeLocation(uis, F_ID, Tables.tblprimarycodes.ToString())
+                        'If there are any
+                        If result.Rows.Count > 0 Then
+                            'Flag error
+                            err = True
+                            errCodes.AddRange(result.ColumnToArray("fldPrintCode"))
+                        End If
+                    Case 2
+                        'Check for codes with non matching location
+                        Dim result As DataTable = db.CheckCodeLocation(aUIs, F_ID, Tables.tblaggregatedcodes.ToString())
+                        'If there are any
+                        If result.Rows.Count > 0 Then
+                            'Flag error
+                            err = True
+                            errCodes.AddRange(result.ColumnToArray("fldPrintCode"))
+                        End If
+                    Case 3
+                        'Check both arrays
+                        Dim result As DataTable = db.CheckCodeLocation(uis, F_ID, Tables.tblprimarycodes.ToString())
+                        Dim result2 As DataTable = db.CheckCodeLocation(aUIs, F_ID, Tables.tblaggregatedcodes.ToString())
+                        'If any one the arrays have non matching locations
+                        If result.Rows.Count > 0 OrElse result2.Rows.Count > 0 Then
+                            err = True
+                            errCodes.TryAddRange(result.ColumnToArray("fldPrintCode"))
+                            errCodes.TryAddRange(result2.ColumnToArray("fldPrintCode"))
+                        End If
+                End Select
+
+                'If erronous data was found
+                If err Then
+                    'Generate error
+                    Dim newError As New ValidationError() With {
+                        .Error_Code = "LOCATION_MISMATCH",
+                        .Error_Descr = "UI last location (FID) must matche the source location (FID) of the dispatch event",
+                        .Error_Data = String.Join("#", errCodes)}
+                    Errors.Add(newError)
+                    Return ValidationResult.Invalid
+                Else Return ValidationResult.Valid
+                End If
+            Case Else
+                Return ValidationResult.Valid
+        End Select
     End Function
 #End Region
 

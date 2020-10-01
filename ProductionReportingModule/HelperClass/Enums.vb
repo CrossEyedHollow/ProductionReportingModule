@@ -3,4 +3,9 @@
     Invalid
 End Enum
 
+Public Enum Tables
+    tblprimarycodes = 0
+    tblaggregatedcodes = 1
+End Enum
+
 
