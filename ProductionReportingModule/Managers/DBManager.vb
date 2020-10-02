@@ -115,6 +115,13 @@ Public Class DBManager
         Dim query As String = $"SELECT * FROM `{DBName}`.`{table}` WHERE fldCode in ('{String.Join("','", codes)}') AND fldLocation <> '{msgF_ID}';"
         Return ReadDatabase(query)
     End Function
+
+
+    Public Function SearchUisInJSON(uis As String(), table As String, msgType As String, jField As String) As DataTable
+        Dim query As String = $"SELECT jt.* FROM `{DBName}`.{table}, JSON_TABLE(fldJson, '${jField}[*]' COLUMNS (Codes VARCHAR(34) PATH '$')) AS jt "
+        query += $"WHERE fldType = '{msgType}' AND Codes IN ('{String.Join("','", uis)}');"
+        Return ReadDatabase(query)
+    End Function
 #Region "Queries"
     Private Function AssembleInsertRawJsonQuery(table As String, Json As String, type As String, guid As String) As String
         Return $"INSERT INTO `{DBName}`.`{table}` ({JsonColumn}, fldLocalCode, fldType) VALUES ('{Json}', '{guid}', '{type}');"

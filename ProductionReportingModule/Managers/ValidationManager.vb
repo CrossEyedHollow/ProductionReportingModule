@@ -206,6 +206,13 @@ Public Class ValidationManager
             ValidationResult = currentResult
             ErrorMessage = JsonManager.StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         End If
+
+        currentResult = VAL_UI_ORD_ARRIVAL()
+        If currentResult <> ValidationResult.Valid Then
+            ErrorHTTPCode = 400
+            ValidationResult = currentResult
+            ErrorMessage = JsonManager.StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
+        End If
     End Sub
 
 #Region "Validations"
@@ -869,6 +876,81 @@ Public Class ValidationManager
                 Else Return ValidationResult.Valid
                 End If
             Case Else
+                Return ValidationResult.Valid
+        End Select
+    End Function
+
+    Public Function VAL_UI_ORD_ARRIVAL() As ValidationResult
+        Dim db As New DBManager()
+        Select Case msgType
+            Case "ERP"
+                'Get variables
+                Dim product_return As Integer = JSON("Product_Return").ToObject(Of Integer)
+                If product_return = 0 Then
+                    'Get the arriving codes
+                    Dim ui_type = JSON("UI_Type").ToObject(Of Integer)
+                    Dim upUIs As String() = JSON("upUIs").ToObject(Of String())
+                    Dim aUIs As String() = JSON("aUIs").ToObject(Of String())
+
+                    Dim err As Boolean = False
+                    Dim errCodes As List(Of String) = New List(Of String)
+
+                    'Search the database
+                    Select Case ui_type
+                        Case 1
+                            Dim result As DataTable = db.SearchUisInJSON(upUIs, Tables.tbljsonsecondary.ToString(), msgType, ".Aggregated_UIs1")
+
+                            'If some of the codes are missing
+                            If result.Rows.Count <> upUIs.Length Then
+                                'Get the missing codes and return error
+                                Dim missingCodes = upUIs.Except(result.ColumnToArray("Codes"))
+                                err = True
+                                errCodes.AddRange(missingCodes)
+                            End If
+                        Case 2
+                            Dim result As DataTable = db.SearchUisInJSON(aUIs, Tables.tbljsonsecondary.ToString(), msgType, ".Aggregated_UIs1")
+
+                            'If some of the codes are missing
+                            If result.Rows.Count <> aUIs.Length Then
+                                'Get the missing codes and return error
+                                Dim missingCodes = aUIs.Except(result.ColumnToArray("Codes"))
+                                err = True
+                                errCodes.AddRange(missingCodes)
+                            End If
+                        Case 3
+                            Dim result1 As DataTable = db.SearchUisInJSON(upUIs, Tables.tbljsonsecondary.ToString(), msgType, ".Aggregated_UIs1")
+                            Dim result2 As DataTable = db.SearchUisInJSON(aUIs, Tables.tbljsonsecondary.ToString(), msgType, ".Aggregated_UIs1")
+
+                            'If some of the codes are missing
+                            If result1.Rows.Count <> upUIs.Length OrElse result2.Rows.Count <> aUIs.Length Then
+                                'Get the missing codes and return error
+                                Dim missingUIs = upUIs.Except(result1.ColumnToArray("Codes"))
+                                Dim missingAUIs = aUIs.Except(result2.ColumnToArray("Codes"))
+
+                                err = True
+                                errCodes.AddRange(missingUIs)
+                                errCodes.AddRange(missingAUIs)
+                            End If
+                        Case Else
+                            Throw New Exception($"Exception in VAL_UI_ORD_ARRIVAL(). Bad value for ui_type: '{ui_type}'")
+                    End Select
+
+                    'If search resulted in error
+                    If err Then
+                        'Generate error
+                        Dim newError As New ValidationError() With {
+                                  .Error_Code = "ARRIVAL_NOTALLOWED",
+                                  .Error_Descr = "Some or all of the UIs have not been part of a prior reported dispatch or transloading event (EDP, ETL).",
+                                  .Error_Data = String.Join("#", errCodes)}
+                        Errors.Add(newError)
+                        Return ValidationResult.Invalid
+                    Else
+                        Return ValidationResult.Valid
+                    End If
+                Else 'Skip
+                    Return ValidationResult.Valid
+                End If
+            Case Else 'Skip
                 Return ValidationResult.Valid
         End Select
     End Function
