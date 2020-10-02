@@ -13,7 +13,7 @@ Public Class DBManager
     Shared Property dbCheckTime As Integer = 5
 
     Public Function CheckForCode(code As String) As DataTable
-        Dim query As String = SelectJsonWithCodeQuery(code)
+        Dim query As String = $"SELECT * FROM `{DBName}`.`tbljson` WHERE fldLocalCode = '{code}';"
         Return ReadDatabase(query)
     End Function
 
@@ -25,10 +25,6 @@ Public Class DBManager
     Public Function CheckF_ID(id As String) As DataTable
         Dim query As String = $"SELECT fldF_ID FROM `{DBName}`.`tblfacility` WHERE fldF_ID = '{id}';"
         Return ReadDatabase(query)
-    End Function
-
-    Private Function SelectJsonWithCodeQuery(code As String) As String
-        Return $"SELECT * FROM `{DBName}`.`tbljson` WHERE fldLocalCode = '{code}';"
     End Function
 
     Public Function GetAuthenticatedUsers() As DataTable
@@ -116,10 +112,14 @@ Public Class DBManager
         Return ReadDatabase(query)
     End Function
 
-
     Public Function SearchUisInJSON(uis As String(), table As String, msgType As String, jField As String) As DataTable
         Dim query As String = $"SELECT jt.* FROM `{DBName}`.{table}, JSON_TABLE(fldJson, '${jField}[*]' COLUMNS (Codes VARCHAR(34) PATH '$')) AS jt "
         query += $"WHERE fldType = '{msgType}' AND Codes IN ('{String.Join("','", uis)}');"
+        Return ReadDatabase(query)
+    End Function
+
+    Public Function SearchCodeInJSON(ui As String, table As String, msgType As String, jField As String)
+        Dim query As String = $"SELECT fldIndex, fldType, fldJson->>'${jField}' AS Code FROM tbljson WHERE fldType = '{msgType}' AND fldJson->>'${jField}' = '{ui}'"
         Return ReadDatabase(query)
     End Function
 #Region "Queries"

@@ -213,6 +213,13 @@ Public Class ValidationManager
             ValidationResult = currentResult
             ErrorMessage = JsonManager.StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         End If
+
+        currentResult = VAL_RECALL_EXIST()
+        If currentResult <> ValidationResult.Valid Then
+            ErrorHTTPCode = 400
+            ValidationResult = currentResult
+            ErrorMessage = JsonManager.StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
+        End If
     End Sub
 
 #Region "Validations"
@@ -898,7 +905,7 @@ Public Class ValidationManager
                     'Search the database
                     Select Case ui_type
                         Case 1
-                            Dim result As DataTable = db.SearchUisInJSON(upUIs, Tables.tbljsonsecondary.ToString(), msgType, ".Aggregated_UIs1")
+                            Dim result As DataTable = db.SearchUisInJSON(upUIs, Tables.tbljsonsecondary.ToString(), msgType, ".upUIs")
 
                             'If some of the codes are missing
                             If result.Rows.Count <> upUIs.Length Then
@@ -908,7 +915,7 @@ Public Class ValidationManager
                                 errCodes.AddRange(missingCodes)
                             End If
                         Case 2
-                            Dim result As DataTable = db.SearchUisInJSON(aUIs, Tables.tbljsonsecondary.ToString(), msgType, ".Aggregated_UIs1")
+                            Dim result As DataTable = db.SearchUisInJSON(aUIs, Tables.tbljsonsecondary.ToString(), msgType, ".aUIs")
 
                             'If some of the codes are missing
                             If result.Rows.Count <> aUIs.Length Then
@@ -918,8 +925,8 @@ Public Class ValidationManager
                                 errCodes.AddRange(missingCodes)
                             End If
                         Case 3
-                            Dim result1 As DataTable = db.SearchUisInJSON(upUIs, Tables.tbljsonsecondary.ToString(), msgType, ".Aggregated_UIs1")
-                            Dim result2 As DataTable = db.SearchUisInJSON(aUIs, Tables.tbljsonsecondary.ToString(), msgType, ".Aggregated_UIs1")
+                            Dim result1 As DataTable = db.SearchUisInJSON(upUIs, Tables.tbljsonsecondary.ToString(), msgType, ".upUIs")
+                            Dim result2 As DataTable = db.SearchUisInJSON(aUIs, Tables.tbljsonsecondary.ToString(), msgType, ".aUIs")
 
                             'If some of the codes are missing
                             If result1.Rows.Count <> upUIs.Length OrElse result2.Rows.Count <> aUIs.Length Then
@@ -954,6 +961,47 @@ Public Class ValidationManager
                 Return ValidationResult.Valid
         End Select
     End Function
+
+    Public Function VAL_UI_ORD_ARRIVAL_RETURN() As ValidationResult
+        Dim db As New DBManager()
+        Select Case msgType
+            Case "ERP"
+                'Get variables
+                Dim product_return As Integer = JSON("Product_Return").ToObject(Of Integer)
+                If product_return = 1 Then
+
+                Else
+                    Return ValidationResult.Valid
+                End If
+            Case Else 'Skip
+                Return ValidationResult.Valid
+        End Select
+    End Function
+
+    Public Function VAL_RECALL_EXIST() As ValidationResult
+        Dim db As New DBManager()
+        Select Case msgType
+            Case "RCL"
+                Dim targetCode As String = JSON("Recall_CODE")
+                'Check if it exists
+                Dim result As DataTable = db.CheckForCode(targetCode)
+                'If it doesn't exist
+                If result.Rows.Count < 1 Then
+                    'Generate error
+                    Dim newError As New ValidationError() With {
+                              .Error_Code = "CODE_NOT_EXIST",
+                              .Error_Descr = "Recall code was not found in the repository",
+                              .Error_Data = targetCode}
+                    Errors.Add(newError)
+                    Return ValidationResult.Invalid
+                Else
+                    Return ValidationResult.Valid
+                End If
+            Case Else
+                Return ValidationResult.Valid
+        End Select
+    End Function
+
 #End Region
 
     Private Function CheckForDeactivated(table As String, codes As String(), codesField As String) As Boolean

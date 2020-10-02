@@ -6,17 +6,17 @@ Imports System
 Public Module Extenders
     <Extension()>
     Public Function IsNullOrEmpty(ByVal array() As String) As Boolean
-        Return IsDBNull(array) OrElse (array.Length < 1)
+        Return (IsDBNull(array) OrElse array Is Nothing) OrElse (array.Length < 1)
     End Function
 
     <Extension()>
     Public Function IsNullOrEmpty(ByVal array() As Integer) As Boolean
-        Return IsDBNull(array) OrElse (array.Length < 1)
+        Return (IsDBNull(array) OrElse array Is Nothing) OrElse (array.Length < 1)
     End Function
 
     <Extension()>
     Public Function IsNullOrEmpty(ByVal array() As Decimal) As Boolean
-        Return IsDBNull(array) OrElse (array.Length < 1)
+        Return (IsDBNull(array) OrElse array Is Nothing) OrElse (array.Length < 1)
     End Function
 
     <Extension()>
