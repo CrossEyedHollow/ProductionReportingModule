@@ -968,9 +968,70 @@ Public Class ValidationManager
             Case "ERP"
                 'Get variables
                 Dim product_return As Integer = JSON("Product_Return").ToObject(Of Integer)
-                If product_return = 1 Then
 
-                Else
+                'Is of type RETURN
+                If product_return = 1 Then
+                    'Get the arriving codes
+                    Dim ui_type = JSON("UI_Type").ToObject(Of Integer)
+                    Dim upUIs As String() = JSON("upUIs").ToObject(Of String())
+                    Dim aUIs As String() = JSON("aUIs").ToObject(Of String())
+
+                    Dim err As Boolean = False
+                    Dim errCodes As List(Of String) = New List(Of String)
+
+                    'Search the database
+                    Select Case ui_type
+                        Case 1
+                            Dim result As DataTable = db.SearchUisInJSON(upUIs, Tables.tbljsonsecondary.ToString(), msgType, ".upUIs")
+
+                            'If some of the codes are missing
+                            If result.Rows.Count <> upUIs.Length Then
+                                'Get the missing codes and return error
+                                Dim missingCodes = upUIs.Except(result.ColumnToArray("Codes"))
+                                err = True
+                                errCodes.AddRange(missingCodes)
+                            End If
+                        Case 2
+                            Dim result As DataTable = db.SearchUisInJSON(aUIs, Tables.tbljsonsecondary.ToString(), msgType, ".aUIs")
+
+                            'If some of the codes are missing
+                            If result.Rows.Count <> aUIs.Length Then
+                                'Get the missing codes and return error
+                                Dim missingCodes = aUIs.Except(result.ColumnToArray("Codes"))
+                                err = True
+                                errCodes.AddRange(missingCodes)
+                            End If
+                        Case 3
+                            Dim result1 As DataTable = db.SearchUisInJSON(upUIs, Tables.tbljsonsecondary.ToString(), msgType, ".upUIs")
+                            Dim result2 As DataTable = db.SearchUisInJSON(aUIs, Tables.tbljsonsecondary.ToString(), msgType, ".aUIs")
+
+                            'If some of the codes are missing
+                            If result1.Rows.Count <> upUIs.Length OrElse result2.Rows.Count <> aUIs.Length Then
+                                'Get the missing codes and return error
+                                Dim missingUIs = upUIs.Except(result1.ColumnToArray("Codes"))
+                                Dim missingAUIs = aUIs.Except(result2.ColumnToArray("Codes"))
+
+                                err = True
+                                errCodes.TryAddRange(missingUIs)
+                                errCodes.TryAddRange(missingAUIs)
+                            End If
+                        Case Else
+                            Throw New Exception($"Exception in VAL_UI_ORD_ARRIVAL(). Bad value for ui_type: '{ui_type}'")
+                    End Select
+
+                    'If search resulted in error
+                    If err Then
+                        'Generate error
+                        Dim newError As New ValidationError() With {
+                                  .Error_Code = "ARRIVAL_NOTALLOWED",
+                                  .Error_Descr = "Some or all of the UIs have not been part of a prior reported dispatch or transloading event (EDP, ETL).",
+                                  .Error_Data = String.Join("#", errCodes)}
+                        Errors.Add(newError)
+                        Return ValidationResult.Invalid
+                    Else
+                        Return ValidationResult.Valid
+                    End If
+                Else 'Skip
                     Return ValidationResult.Valid
                 End If
             Case Else 'Skip
@@ -997,6 +1058,73 @@ Public Class ValidationManager
                 Else
                     Return ValidationResult.Valid
                 End If
+            Case Else
+                Return ValidationResult.Valid
+        End Select
+    End Function
+
+    Public Function VAL_RECALL_LAST() As ValidationResult
+        Dim db As New DBManager()
+        Select Case msgType
+            Case "RCL"
+                'Get the index of the recalled JSON
+                Dim targetID As String = JSON("Recall_CODE")
+                'Get it from the db
+                Dim result As DataTable = db.CheckForCode(targetID)
+                'If its there
+                If result.Rows.Count > 0 Then
+                    'Convert to JObject
+                    Dim resultJSON As JObject = JObject.Parse(result.Rows(0)("fldJson"))
+                    Dim type As String = resultJSON("Message_Type")
+
+                    'Get the UIs from the message
+                    Select Case type
+                        Case "IDA"
+                            'Deact_upUI
+                            'Deact_aUI
+                            Dim aggType As Integer = JSON("Deact_Type").ToObject(Of Integer)
+                            Select Case aggType
+                                Case 1 'ui only
+                                Case 2 'Aggregated only
+                                Case Else
+                                    Throw New Exception($"Unexpected value for Deact_Type: {aggType}")
+                            End Select
+                        Case "EUA"
+                            'upUI_1
+                            'upUI_2
+                        Case "EPA"
+                            'parent code has to be checked too
+                            'Aggregated_UIs1
+                            'Aggregated_UIs2
+                            Dim aggType As Integer = JSON("Aggregation_Type").ToObject(Of Integer)
+                            Select Case aggType
+                                Case 1 'ui only
+                                Case 2 'Aggregated only
+                                Case 3 'Both
+                                Case Else
+                                    Throw New Exception($"Unexpected value for Aggregation_Type: {aggType}")
+                            End Select
+
+                        Case "EDP", "ERP", "ETL", "EVR", "EIV", "EPO", "EPR"
+                            'upUIs
+                            'aUIs
+                            Dim aggType As Integer = JSON("UI_Type").ToObject(Of Integer)
+                            Select Case aggType
+                                Case 1 'ui only
+                                Case 2 'Aggregated only
+                                Case 3 'Both
+                                Case Else
+                                    Throw New Exception($"Unexpected value for UI_Type: {aggType}")
+                            End Select
+                        Case "EUD"
+                            'only has 1 aUI ???
+                        Case Else
+                    End Select
+
+
+
+                End If
+
             Case Else
                 Return ValidationResult.Valid
         End Select
