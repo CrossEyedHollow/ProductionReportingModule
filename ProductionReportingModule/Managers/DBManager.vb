@@ -93,6 +93,20 @@ Public Class DBManager
         Return ReadDatabase(query)
     End Function
 
+    Public Function CheckApliedCodes(codeList As String()) As DataTable
+        'Query that selects all of the codes from the list that already have a printed code
+        Dim query As String = $"SELECT fldCode, fldPrintCode FROM `{DBBase.DBName}`.`tblprimarycodes` "
+        query += $"WHERE fldCode in ('{String.Join("','", codeList)}') AND fldPrintCode IS NOT NULL;"
+        Return ReadDatabase(query)
+    End Function
+
+    'Public Function CheckPrintCodes(codeList As String()) As DataTable
+    '    ''Query that selects all of the codes from the list that already have a printed code
+    '    'Dim query As String = $"SELECT fldCode, fldPrintCode FROM `{DBBase.DBName}`.`tblprimarycodes` "
+    '    'query += $"WHERE fldPrintCode in ('{String.Join("','", codeList)}');"
+    '    Return ReadDatabase("")
+    'End Function
+
     Public Function CheckPrimaryCodesExpiration(codes As String()) As DataTable
         Dim query As String = $"SELECT * FROM `{DBName}`.`tblprimarycodes` WHERE fldCode in ('{String.Join("','", codes)}') AND fldIssueDate < NOW() - INTERVAL 6 MONTH;"
         Return ReadDatabase(query)

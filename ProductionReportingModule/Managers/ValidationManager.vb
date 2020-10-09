@@ -214,6 +214,13 @@ Public Class ValidationManager
             ErrorMessage = JsonManager.StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         End If
 
+        currentResult = VAL_UI_ORD_ARRIVAL_RETURN()
+        If currentResult <> ValidationResult.Valid Then
+            ErrorHTTPCode = 400
+            ValidationResult = currentResult
+            ErrorMessage = JsonManager.StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
+        End If
+
         currentResult = VAL_RECALL_EXIST()
         If currentResult <> ValidationResult.Valid Then
             ErrorHTTPCode = 400
@@ -437,10 +444,8 @@ Public Class ValidationManager
         Dim longCodes As String() = JSON("upUI_1").ToObject(Of String())
         Dim shortCodes As String() = JSON("upUI_2").ToObject(Of String())
 
-        'Query that selects all of the codes from the list that already have a printed code
-        Dim query As String = $"SELECT fldCode, fldPrintCode FROM `{DBBase.DBName}`.`tblprimarycodes` "
-        query += $"WHERE fldCode in ('{String.Join("','", shortCodes)}') AND fldPrintCode IS NOT NULL;"
-        Dim result = db.ReadDatabase(query)
+
+        Dim result = db.CheckApliedCodes(shortCodes)
 
         'If codes(s) exist already, fail validation
         If result.Rows.Count > 0 Then
@@ -477,12 +482,50 @@ Public Class ValidationManager
     End Function
 
     Public Function VAL_UI_EXIST_UPUI() As ValidationResult
+        Dim db As New DBManager()
+        Dim codeList As String() = Nothing
+        Dim jAggColumn As String
+        Dim jCodesColumn As String
+
+        'Make adjusments based on the message type
         Select Case msgType
-            Case "EPA", "EDP", "ERP", "ETL", "EVR", "EIV", "EPO", "EPR"
-                Return ValidationResult.Valid
+            Case "EIV", "EPR", "EDP", "ERP", "ETL", "EVR", "EPO"
+                jAggColumn = "UI_Type"
+                jCodesColumn = "upUIs"
+            Case "EPA"
+                jAggColumn = "Aggregation_Type"
+                jCodesColumn = "Aggregated_UIs1"
             Case Else
                 Return ValidationResult.Valid
         End Select
+
+        'Get the codes from the right column
+        Dim aggType As Integer = JSON(jAggColumn).ToObject(Of Integer)
+        Select Case aggType
+            Case 1, 3 'Unit level or Both
+                codeList = JSON.Item(jCodesColumn).ToObject(Of String())
+            Case Else 'This validation only checks unit level uis
+                Return ValidationResult.Valid
+        End Select
+
+        'Check db
+        Dim result As DataTable = db.CheckCodesExistence(codeList, Tables.tblprimarycodes.ToString(), "fldPrintCode")
+
+        'If some of the codes weren't found
+        If result.Rows.Count <> codeList.Length Then
+            'Generate error
+            Dim errCodes As String() = codeList.Except(result.ColumnToArray("fldPrintCode"))
+
+            'Create new error
+            Dim newError As New ValidationError() With {
+                .Error_Code = "UI_NOT_EXIST",
+                .Error_Descr = $"Some of the UIs were not found in the primary repository.",
+                .Error_Data = String.Join("#", errCodes)}
+            Errors.Add(newError)
+            Return ValidationResult.Invalid
+        Else
+            Return ValidationResult.Valid
+        End If
     End Function
 
     Public Function VAL_UI_EXIST_AUI() As ValidationResult
