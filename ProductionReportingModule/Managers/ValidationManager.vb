@@ -483,9 +483,9 @@ Public Class ValidationManager
 
     Public Function VAL_UI_EXIST_UPUI() As ValidationResult
         Dim db As New DBManager()
-        Dim codeList As String() = Nothing
         Dim jAggColumn As String
         Dim jCodesColumn As String
+        Dim codeList As String()
 
         'Make adjusments based on the message type
         Select Case msgType
@@ -529,12 +529,55 @@ Public Class ValidationManager
     End Function
 
     Public Function VAL_UI_EXIST_AUI() As ValidationResult
+        Dim db As New DBManager()
+        Dim jAggColumn As String
+        Dim jCodesColumn As String
+        Dim codeList As String()
+
+        'Make adjusments based on the message type
         Select Case msgType
-            Case "IDA", "EPA", "EDP", "ERP", "ETL", "EVR", "EIV", "EPO", "EPR"
-                Return ValidationResult.Valid
+            Case "IDA"
+                jAggColumn = "Deact_Type"
+                jCodesColumn = "Deact_aUI"
+            Case "EPA"
+                jAggColumn = "Aggregation_Type"
+                jCodesColumn = "Aggregated_UIs2"
+            Case "EDP", "ERP", "ETL", "EVR", "EIV", "EPO", "EPR"
+                jAggColumn = "UI_Type"
+                jCodesColumn = "aUIs"
             Case Else
                 Return ValidationResult.Valid
         End Select
+
+        'Get the codes from the right column
+        Dim aggType As Integer = JSON(jAggColumn).ToObject(Of Integer)
+        Select Case aggType
+            Case 2, 3 'Unit level or Both
+                codeList = JSON.Item(jCodesColumn).ToObject(Of String())
+            Case Else 'This validation only checks unit level uis
+                Return ValidationResult.Valid
+        End Select
+
+        'Check db
+        Dim result As DataTable = db.CheckAUIExistence(codeList)
+
+        'If some of the codes weren't found
+        If result.Rows.Count <> codeList.Length Then
+            'Generate error
+            Dim errCodes As String() = codeList.Except(result.ColumnToArray("fldParentCode"))
+
+            'Create new error
+            Dim newError As New ValidationError() With {
+                .Error_Code = "UI_NOT_EXIST",
+                .Error_Descr = $"Some of the UIs were not found in the primary repository.",
+                .Error_Data = String.Join("#", errCodes)}
+            Errors.Add(newError)
+            Return ValidationResult.Invalid
+        Else
+            Return ValidationResult.Valid
+        End If
+
+
     End Function
 
     Public Function VAL_UI_EXIST_UPUI_SEQ() As ValidationResult

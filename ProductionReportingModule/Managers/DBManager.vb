@@ -93,6 +93,11 @@ Public Class DBManager
         Return ReadDatabase(query)
     End Function
 
+    Public Function CheckAUIExistence(codes As String()) As DataTable
+        Dim query As String = $"SELECT DISTINCT fldParentCode FROM tblprimarycodes WHERE fldParentCode IN ('{String.Join("','", codes)}');"
+        Return ReadDatabase(query)
+    End Function
+
     Public Function CheckApliedCodes(codeList As String()) As DataTable
         'Query that selects all of the codes from the list that already have a printed code
         Dim query As String = $"SELECT fldCode, fldPrintCode FROM `{DBBase.DBName}`.`tblprimarycodes` "
