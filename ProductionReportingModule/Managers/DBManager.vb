@@ -62,7 +62,7 @@ Public Class DBManager
     End Function
 
     Public Function CheckForDeactivated(tableName As String, codes As String(), codesColumnName As String)
-        Dim query = $"SELECT * FROM `{DBName}`.`{tableName}` where fldIDA is not null and {codesColumnName} in ('{String.Join("','", codes)}');"
+        Dim query = $"SELECT * FROM `{DBName}`.`{tableName}` WHERE fldIDA IS NOT NULL AND {codesColumnName} IN ('{String.Join("','", codes)}');"
         Return ReadDatabase(query)
     End Function
 
@@ -73,8 +73,8 @@ Public Class DBManager
         query += $"LEFT JOIN (`{DBName}`.tbljson AS J) "
         query += "ON a.fldEUD = j.fldIndex "
         query += "WHERE J.fldDate > A.fldAggregatedDate "
-        query += "And A.fldEUD Is Not null "
-        query += $"And A.fldPrintCode in ('{String.Join("','", codes)}');"
+        query += "AND A.fldEUD IS NOT NULL "
+        query += $"AND A.fldPrintCode IN ('{String.Join("','", codes)}');"
         Return ReadDatabase(query)
     End Function
 

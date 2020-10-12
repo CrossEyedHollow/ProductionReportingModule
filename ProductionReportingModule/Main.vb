@@ -18,7 +18,6 @@ Module Main
         End Try
 
         'TESTING GROUND
-
         'END OF TESTING GROUND
 
         'Start the token manager

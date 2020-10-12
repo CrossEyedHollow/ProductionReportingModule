@@ -15,7 +15,6 @@ Public Class ValidationManager
     Public Property Context As HttpListenerContext
     Public Property Content As String
     Public Property JSON As JObject
-
     Public Property MsgFromSecondary As Boolean
     Public Property msgType As String
     Public Property msgCode As String
@@ -552,9 +551,9 @@ Public Class ValidationManager
         'Get the codes from the right column
         Dim aggType As Integer = JSON(jAggColumn).ToObject(Of Integer)
         Select Case aggType
-            Case 2, 3 'Unit level or Both
+            Case 2, 3 'aggregated level or Both
                 codeList = JSON.Item(jCodesColumn).ToObject(Of String())
-            Case Else 'This validation only checks unit level uis
+            Case Else 'This validation only checks aggregated level uis
                 Return ValidationResult.Valid
         End Select
 
@@ -576,16 +575,108 @@ Public Class ValidationManager
         Else
             Return ValidationResult.Valid
         End If
-
-
     End Function
 
     Public Function VAL_UI_EXIST_UPUI_SEQ() As ValidationResult
-        Return ValidationResult.Valid
+        Dim db As New DBManager()
+
+        Dim jAggColumn As String
+        Dim jCodesColumn As String
+        Dim codeList As String()
+
+        Select Case msgType
+            Case "EPA" 'Children ui only
+                jAggColumn = "Aggregation_Type"
+                jCodesColumn = "Aggregated_UIs1"
+            Case "EDP", "ERP", "ETL", "EVR"
+                jAggColumn = "UI_Type"
+                jCodesColumn = "upUIs"
+            Case Else
+                Return ValidationResult.Valid
+        End Select
+
+        'Get the codes from the right column
+        Dim aggType As Integer = JSON(jAggColumn).ToObject(Of Integer)
+
+        Select Case aggType
+            Case 1, 3 'Unit level or Both
+                codeList = JSON.Item(jCodesColumn).ToObject(Of String())
+            Case Else 'This validation only checks unit level uis
+                Return ValidationResult.Valid
+        End Select
+
+        'Check db
+        Dim result As DataTable = db.CheckForDeactivated(Tables.tblprimarycodes.ToString(), codeList, "fldPrintCode")
+
+        'If there are any deactivated
+        If result.Rows.Count > 0 Then
+            'Generate error
+            Dim errCodes As String() = result.ColumnToArray("fldPrintCode")
+
+            'Create new error
+            Dim newError As New ValidationError() With {
+                .Error_Code = "UI_NOT_VALID",
+                .Error_Descr = $"Some of the UIs have been a part of deactivation(IDA) message.",
+                .Error_Data = String.Join("#", errCodes)}
+            Errors.Add(newError)
+            Return ValidationResult.Invalid
+        Else
+            Return ValidationResult.Valid
+        End If
     End Function
 
     Public Function VAL_UI_EXIST_AUI_SEQ() As ValidationResult
-        Return ValidationResult.Valid
+        Dim db As New DBManager()
+        Dim jAggColumn As String
+        Dim jCodesColumn As String
+        Dim codeList As String()
+
+        'Make adjusments based on the message type
+        Select Case msgType
+            Case "IDA"
+                jAggColumn = "Deact_Type"
+                jCodesColumn = "Deact_aUI"
+            Case "EPA"
+                jAggColumn = "Aggregation_Type"
+                jCodesColumn = "Aggregated_UIs2"
+            Case "EDP", "ERP", "ETL", "EVR"
+                jAggColumn = "UI_Type"
+                jCodesColumn = "aUIs"
+            Case Else
+                Return ValidationResult.Valid
+        End Select
+
+        'Get the codes from the right column
+        Dim aggType As Integer = JSON(jAggColumn).ToObject(Of Integer)
+        Select Case aggType
+            Case 2, 3 'aggregated level or Both
+                codeList = JSON.Item(jCodesColumn).ToObject(Of String())
+            Case Else 'This validation only checks aggregated level uis
+                Return ValidationResult.Valid
+        End Select
+
+        'Check db
+        Dim resultDeact As DataTable = db.CheckForDeactivated(Tables.tblaggregatedcodes.ToString(), codeList, "fldPrintCode")
+        Dim resultDeagg As DataTable = db.CheckForDeaggregated(codeList)
+
+        'If any of the codes are deactivated/deaggregated
+        If resultDeact.Rows.Count > 0 OrElse resultDeagg.Rows.Count > 0 Then
+            'Generate error
+            Dim errCodes As List(Of String) = New List(Of String)
+            'Add both code lists to the error list
+            errCodes.TryAddRange(resultDeact.ColumnToArray("fldPrintCode"))
+            errCodes.TryAddRange(resultDeagg.ColumnToArray("fldPrintCode"))
+
+            'Create new error
+            Dim newError As New ValidationError() With {
+                .Error_Code = "UI_NOT_EXIST",
+                .Error_Descr = $"Some of the UIs were not found in the primary repository.",
+                .Error_Data = String.Join("#", errCodes)}
+            Errors.Add(newError)
+            Return ValidationResult.Invalid
+        Else
+            Return ValidationResult.Valid
+        End If
     End Function
 
     Public Function VAL_UI_EXPIRY() As ValidationResult
