@@ -71,7 +71,7 @@ Public Class DBManager
         query += "SELECT A.*, J.fldDate AS fldEUDDate "
         query += $"FROM {DBName}.tblaggregatedcodes AS A "
         query += $"LEFT JOIN (`{DBName}`.tbljson AS J) "
-        query += "ON a.fldEUD = j.fldIndex "
+        query += "ON a.fldEUD = j.fldIndex " ' TODO needs to change
         query += "WHERE J.fldDate > A.fldAggregatedDate "
         query += "AND A.fldEUD IS NOT NULL "
         query += $"AND A.fldPrintCode IN ('{String.Join("','", codes)}');"

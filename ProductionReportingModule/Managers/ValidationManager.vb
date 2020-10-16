@@ -466,7 +466,6 @@ Public Class ValidationManager
         Dim db As New DBManager()
         'Validation is only ment for EUA messages
         If msgType <> "EUA" Then Return ValidationResult.Valid
-        'TODO
         'Check F_ID
         Dim id As String = JSON("F_ID")
         Dim result = db.CheckF_ID(id)
@@ -1297,9 +1296,6 @@ Public Class ValidationManager
                             'only has 1 aUI ???
                         Case Else
                     End Select
-
-
-
                 End If
 
             Case Else

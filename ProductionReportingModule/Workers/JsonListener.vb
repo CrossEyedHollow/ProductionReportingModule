@@ -98,7 +98,7 @@ Public Class JsonListener
                     answer = JsonManager.StandartResponse(code, msgType, checksum, Nothing, eventTime)
 
                     'Save the json in alternative table
-                    If db.InsertRawJson("tbljsonsecondary", rawText, msgType.ToUpper()) Then
+                    If db.InsertRawJson("tbljsonsecondary", rawText, msgType.ToUpper(), code) Then
                         Output.ToConsole("New message was received from secondary repository and was sent to the Database")
                     End If
                 Else
