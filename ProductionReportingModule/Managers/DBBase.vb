@@ -10,6 +10,8 @@ Public Class DBBase
     Public Shared Property DBUser As String
     Public Shared Property DBPass As String
     Public Shared Property DBPort As UInteger
+    Public Shared ReadOnly Property DateTimeFormat = "yyyy-MM-dd HH:mm:ss"
+
 
     Protected conn As MySqlConnection
     Protected adapter As MySqlDataAdapter
@@ -27,14 +29,13 @@ Public Class DBBase
         'Instantiate necessary objects
         conn = New MySqlConnection(cBuilder.ConnectionString)
         cmd = New MySqlCommand() With {.Connection = conn}
-        adapter = New MySqlDataAdapter()
+        adapter = New MySqlDataAdapter With {.SelectCommand = cmd}
     End Sub
 
 #Region "Direct access"
     Public Function ReadDatabase(query As String) As DataTable
-        cmd.CommandText = query
-        adapter.SelectCommand = cmd
         Dim output As New DataTable
+        cmd.CommandText = query
 
         Try
             conn.Open()

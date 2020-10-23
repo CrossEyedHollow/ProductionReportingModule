@@ -226,6 +226,13 @@ Public Class ValidationManager
             ValidationResult = currentResult
             ErrorMessage = JsonManager.StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
         End If
+
+        currentResult = VAL_RECALL_LAST()
+        If currentResult <> ValidationResult.Valid Then
+            ErrorHTTPCode = 400
+            ValidationResult = currentResult
+            ErrorMessage = JsonManager.StandartResponse(msgCode, msgType, ToMD5Hash(Content), Errors)
+        End If
     End Sub
 
 #Region "Validations"
@@ -1248,54 +1255,121 @@ Public Class ValidationManager
                 'Get it from the db
                 Dim result As DataTable = db.CheckForCode(targetID)
                 'If its there
-                If result.Rows.Count > 0 Then
-                    'Convert to JObject
-                    Dim resultJSON As JObject = JObject.Parse(result.Rows(0)("fldJson"))
-                    Dim type As String = resultJSON("Message_Type")
 
-                    'Get the UIs from the message
-                    Select Case type
-                        Case "IDA"
-                            'Deact_upUI
-                            'Deact_aUI
-                            Dim aggType As Integer = JSON("Deact_Type").ToObject(Of Integer)
-                            Select Case aggType
-                                Case 1 'ui only
-                                Case 2 'Aggregated only
-                                Case Else
-                                    Throw New Exception($"Unexpected value for Deact_Type: {aggType}")
-                            End Select
-                        Case "EUA"
-                            'upUI_1
-                            'upUI_2
-                        Case "EPA"
-                            'parent code has to be checked too
-                            'Aggregated_UIs1
-                            'Aggregated_UIs2
-                            Dim aggType As Integer = JSON("Aggregation_Type").ToObject(Of Integer)
-                            Select Case aggType
-                                Case 1 'ui only
-                                Case 2 'Aggregated only
-                                Case 3 'Both
-                                Case Else
-                                    Throw New Exception($"Unexpected value for Aggregation_Type: {aggType}")
-                            End Select
+                'Convert to JObject
+                Dim resultJSON As JObject = JObject.Parse(result.Rows(0)("fldJson"))
+                Dim type As String = resultJSON("Message_Type")
+                Dim jsonDate As Date = CDate(result.Rows(0)("fldDate"))
+                Dim err As Boolean = False
 
-                        Case "EDP", "ERP", "ETL", "EVR", "EIV", "EPO", "EPR"
-                            'upUIs
-                            'aUIs
-                            Dim aggType As Integer = JSON("UI_Type").ToObject(Of Integer)
-                            Select Case aggType
-                                Case 1 'ui only
-                                Case 2 'Aggregated only
-                                Case 3 'Both
-                                Case Else
-                                    Throw New Exception($"Unexpected value for UI_Type: {aggType}")
-                            End Select
-                        Case "EUD"
-                            'only has 1 aUI ???
-                        Case Else
-                    End Select
+                'Get the UIs from the message
+                Select Case type
+                    Case "IDA"
+                        'Deact_upUI
+                        'Deact_aUI
+                        Dim aggType As Integer = JSON("Deact_Type").ToObject(Of Integer)
+                        Select Case aggType
+                            Case 1 'ui only
+                                'Get the codes
+                                Dim uis As String() = JSON("Deact_upUI").ToObject(Of String())
+                                Dim afterEvents As DataTable = CheckForAfterEvents(db, jsonDate, uis, "fldPrintCode", Tables.tblprimarycodes)
+
+                                'If any events are found for these codes, fail validation
+                                If afterEvents.Rows.Count > 0 Then err = True
+                            Case 2 'Aggregated only
+                                'Get the codes
+                                Dim uis As String() = JSON("Deact_aUI").ToObject(Of String())
+                                Dim afterEvents As DataTable = CheckForAfterEvents(db, jsonDate, uis, "fldPrintCode", Tables.tblaggregatedcodes)
+
+                                'If any events are found for these codes, fail validation
+                                If afterEvents.Rows.Count > 0 Then err = True
+                            Case Else
+                                Throw New Exception($"Unexpected value for Deact_Type: {aggType}")
+                        End Select
+                    Case "EUA"
+                        'upUI_1 = upUI(L)
+                        Dim uis As String() = JSON("upUI_1").ToObject(Of String())
+                        Dim afterEvents As DataTable = CheckForAfterEvents(db, jsonDate, uis, "fldPrintCode", Tables.tblprimarycodes)
+
+                        'If any events are found for these codes, fail validation
+                        If afterEvents.Rows.Count > 0 Then err = True
+                    Case "EPA"
+                        'parent code has to be checked too
+                        'Aggregated_UIs1
+                        'Aggregated_UIs2
+                        Dim aggType As Integer = JSON("Aggregation_Type").ToObject(Of Integer)
+                        Select Case aggType
+                            Case 1 'ui only
+                                'Get the codes
+                                Dim uis As String() = JSON("Aggregated_UIs1").ToObject(Of String())
+                                Dim afterEvents As DataTable = CheckForAfterEvents(db, jsonDate, uis, "fldPrintCode", Tables.tblprimarycodes)
+
+                                'If any events are found for these codes, fail validation
+                                If afterEvents.Rows.Count > 0 Then err = True
+                            Case 2 'Aggregated only
+                                'Get the codes
+                                Dim uis As String() = JSON("Aggregated_UIs2").ToObject(Of String())
+                                Dim afterEvents As DataTable = CheckForAfterEvents(db, jsonDate, uis, "fldPrintCode", Tables.tblaggregatedcodes)
+
+                                'If any events are found for these codes, fail validation
+                                If afterEvents.Rows.Count > 0 Then err = True
+                            Case 3 'Both
+                                'Get the uis
+                                Dim uis As String() = JSON("Aggregated_UIs1").ToObject(Of String())
+                                Dim afterEvents As DataTable = CheckForAfterEvents(db, jsonDate, uis, "fldPrintCode", Tables.tblprimarycodes)
+                                'Get the aUIs
+                                Dim ais As String() = JSON("Aggregated_UIs2").ToObject(Of String())
+                                Dim afterEvents2 As DataTable = CheckForAfterEvents(db, jsonDate, uis, "fldPrintCode", Tables.tblaggregatedcodes)
+                                'If any events are found for these codes, fail validation
+                                If afterEvents.Rows.Count > 0 OrElse afterEvents2.Rows.Count > 0 Then err = True
+                            Case Else
+                                Throw New Exception($"Unexpected value for Aggregation_Type: {aggType}")
+                        End Select
+
+                    Case "EDP", "ERP", "ETL", "EVR", "EIV", "EPO", "EPR"
+                        'upUIs
+                        'aUIs
+                        Dim aggType As Integer = JSON("UI_Type").ToObject(Of Integer)
+                        Select Case aggType
+                            Case 1 'ui only
+                                'Get the codes
+                                Dim uis As String() = JSON("upUIs").ToObject(Of String())
+                                Dim afterEvents As DataTable = CheckForAfterEvents(db, jsonDate, uis, "fldPrintCode", Tables.tblprimarycodes)
+
+                                'If any events are found for these codes, fail validation
+                                If afterEvents.Rows.Count > 0 Then err = True
+                            Case 2 'Aggregated only
+                                'Get the codes
+                                Dim uis As String() = JSON("aUIs").ToObject(Of String())
+                                Dim afterEvents As DataTable = CheckForAfterEvents(db, jsonDate, uis, "fldPrintCode", Tables.tblaggregatedcodes)
+
+                                'If any events are found for these codes, fail validation
+                                If afterEvents.Rows.Count > 0 Then err = True
+                            Case 3 'Both
+                                'Get the uis
+                                Dim uis As String() = JSON("upUIs").ToObject(Of String())
+                                Dim afterEvents As DataTable = CheckForAfterEvents(db, jsonDate, uis, "fldPrintCode", Tables.tblprimarycodes)
+                                'Get the aUIs
+                                Dim ais As String() = JSON("aUIs").ToObject(Of String())
+                                Dim afterEvents2 As DataTable = CheckForAfterEvents(db, jsonDate, uis, "fldPrintCode", Tables.tblaggregatedcodes)
+                                'If any events are found for these codes, fail validation
+                                If afterEvents.Rows.Count > 0 OrElse afterEvents2.Rows.Count > 0 Then err = True
+                            Case Else
+                                Throw New Exception($"Unexpected value for UI_Type: {aggType}")
+                        End Select
+                    Case Else
+                End Select
+
+                'If any events after the eventDate were found
+                If err Then
+                    'Generate error
+                    Dim newError As New ValidationError() With {
+                          .Error_Code = "RECALL_NOT_LAST_EVENT",
+                          .Error_Descr = "RecallCode must the very last unrecalled event occurred on all UIs"}
+                    Errors.Add(newError)
+                    Return ValidationResult.Invalid
+                Else
+                    Return ValidationResult.Valid
                 End If
 
             Case Else
@@ -1304,7 +1378,19 @@ Public Class ValidationManager
     End Function
 
 #End Region
-
+    Private Function CheckForAfterEvents(db As DBManager, eventDate As Date, eventUIs As String(), sColumn As String, sTable As Tables) As DataTable
+        'Get the events for those codes
+        Dim involvedEvents As DataTable = db.SelectInvolvedEvents(eventUIs, sTable, sColumn)
+        'Convert to one dimentional array
+        Dim strEvents As String = String.Join(",", involvedEvents.ColumnToArray("EventList"))
+        'Remove null values
+        Dim arrEvents = strEvents.Split(",").Where(Function(x) Not String.IsNullOrEmpty(x)).ToArray()
+        'Remove duplicates
+        Dim distinctEvents As HashSet(Of String) = New HashSet(Of String)(arrEvents)
+        'Check for events that happened after the eventDate
+        Dim afterEvents As DataTable = db.SelectMessagesOlderThan(eventDate, distinctEvents)
+        Return afterEvents
+    End Function
     Private Function CheckForDeactivated(table As String, codes As String(), codesField As String) As Boolean
         Dim db As New DBManager()
         Dim result As DataTable = db.CheckForDeactivated(table, codes, codesField)

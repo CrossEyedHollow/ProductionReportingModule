@@ -32,6 +32,28 @@ Public Class DBManager
         Return ReadDatabase(query)
     End Function
 
+    Public Function SelectInvolvedEvents(codes As String(), table As Tables, codesColumn As String) As DataTable
+        Dim query As String
+        Select Case table
+            Case Tables.tblprimarycodes
+                query = $"SELECT T.*, CONCAT_WS(',',fldEUA,fldEPA,fldEDP,fldEIV,fldEPR,fldERP,fldIDA) as EventList FROM `{DBName}`.`{table}` as T WHERE {codesColumn} in ('{String.Join("','", codes)}') ORDER BY T.fldIndex;"
+            Case Tables.tblaggregatedcodes
+                query = $"SELECT T.*, CONCAT_WS(',',fldEPA,fldEDP,fldEIV,fldEPR,fldERP,fldEUD,fldIDA) as EventList FROM `{DBName}`.`{table}` as T WHERE {codesColumn} in ('{String.Join("','", codes)}') ORDER BY T.fldIndex;"
+            Case Else
+                Throw New Exception($"Invalid argument for table: '{table}'")
+        End Select
+        Return ReadDatabase(query)
+    End Function
+
+    Public Function SelectMessagesOlderThan(msgDate As Date, msgCodes As HashSet(Of String))
+        Dim strCodes = $"'{String.Join("','", msgCodes)}'"
+        Dim query As String = ""
+        query += $"SELECT fldIndex, fldJson, fldDate, 'tbljson' AS `Table` FROM `{DBName}`.tbljson WHERE fldDate> '{msgDate.ToString(DateTimeFormat)}' AND fldLocalCode in ({strCodes}) "
+        query += "UNION "
+        query += $"SELECT fldIndex, fldJson, fldDate, 'tbljsonsecondary' AS `Table` FROM `{DBName}`.tbljsonsecondary WHERE fldDate > '{msgDate.ToString(DateTimeFormat)}' AND fldLocalCode in ({strCodes});"
+        Return ReadDatabase(query)
+    End Function
+
     Public Function InsertRawJson(table As String, Json As String, type As String, guid As String) As Boolean
         'Generate the query
         Dim query As String = AssembleInsertRawJsonQuery(table, Json, type, guid)
@@ -66,12 +88,12 @@ Public Class DBManager
         Return ReadDatabase(query)
     End Function
 
-    Public Function CheckForDeaggregated(codes As String())
+    Public Function CheckForDeaggregated(codes As String()) As DataTable
         Dim query = ""
         query += "SELECT A.*, J.fldDate AS fldEUDDate "
         query += $"FROM {DBName}.tblaggregatedcodes AS A "
         query += $"LEFT JOIN (`{DBName}`.tbljson AS J) "
-        query += "ON a.fldEUD = j.fldIndex " ' TODO needs to change
+        query += "ON A.fldEUD = J.fldLocalCode "
         query += "WHERE J.fldDate > A.fldAggregatedDate "
         query += "AND A.fldEUD IS NOT NULL "
         query += $"AND A.fldPrintCode IN ('{String.Join("','", codes)}');"
