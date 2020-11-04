@@ -48,7 +48,7 @@ Public Class DBManager
     Public Function SelectMessagesOlderThan(msgDate As Date, msgCodes As HashSet(Of String))
         Dim strCodes = $"'{String.Join("','", msgCodes)}'"
         Dim query As String = ""
-        query += $"SELECT fldIndex, fldJson, fldDate, 'tbljson' AS `Table` FROM `{DBName}`.tbljson WHERE fldDate> '{msgDate.ToString(DateTimeFormat)}' AND fldLocalCode in ({strCodes}) "
+        query += $"SELECT fldIndex, fldJson, fldDate, 'tbljson' AS `Table` FROM `{DBName}`.tbljson WHERE fldDate > '{msgDate.ToString(DateTimeFormat)}' AND fldLocalCode in ({strCodes}) "
         query += "UNION "
         query += $"SELECT fldIndex, fldJson, fldDate, 'tbljsonsecondary' AS `Table` FROM `{DBName}`.tbljsonsecondary WHERE fldDate > '{msgDate.ToString(DateTimeFormat)}' AND fldLocalCode in ({strCodes});"
         Return ReadDatabase(query)
@@ -100,6 +100,11 @@ Public Class DBManager
         Return ReadDatabase(query)
     End Function
 
+    Public Function CheckForEUD(codes As String()) As DataTable
+        Dim query = $"SELECT * FROM `{DBName}`.`tblaggregatedcodes` WHERE fldPrintCode in ('{String.Join("','", codes)}') AND fldEUD IS NOT NULL;"
+        Return ReadDatabase(query)
+    End Function
+
     Public Sub UpdateDatabase(index As Integer, response As String)
         Dim query As String = AssembleUpdateRepDateQuery(index, response)
         Execute(query)
@@ -148,8 +153,8 @@ Public Class DBManager
         Dim query As String = $"SELECT * FROM `{DBName}`.`tblaggregatedcodes` WHERE fldCode = '{code}' AND fldLocation <> '{msgF_ID}';"
         Return ReadDatabase(query)
     End Function
-    Public Function CheckCodeLocation(codes() As String, msgF_ID As String, table As String) As DataTable
-        Dim query As String = $"SELECT * FROM `{DBName}`.`{table}` WHERE fldCode in ('{String.Join("','", codes)}') AND fldLocation <> '{msgF_ID}';"
+    Public Function CheckCodeLocation(codes() As String, msgF_ID As String, table As String, codeColumn As String) As DataTable
+        Dim query As String = $"SELECT * FROM `{DBName}`.`{table}` WHERE {codeColumn} in ('{String.Join("','", codes)}') AND fldLocation <> '{msgF_ID}';"
         Return ReadDatabase(query)
     End Function
 
@@ -159,10 +164,11 @@ Public Class DBManager
         Return ReadDatabase(query)
     End Function
 
-    Public Function SearchCodeInJSON(ui As String, table As String, msgType As String, jField As String)
-        Dim query As String = $"SELECT fldIndex, fldType, fldJson->>'${jField}' AS Code FROM tbljson WHERE fldType = '{msgType}' AND fldJson->>'${jField}' = '{ui}'"
-        Return ReadDatabase(query)
-    End Function
+    'Public Function SearchCodeInJSON(ui As String, table As String, msgType As String, jField As String)
+    '    Dim query As String = $"SELECT fldIndex, fldType, fldJson->>'${jField}' AS Code FROM tbljson WHERE fldType = '{msgType}' AND fldJson->>'${jField}' = '{ui}'"
+    '    Return ReadDatabase(query)
+    'End Function
+
 #Region "Queries"
     Private Function AssembleInsertRawJsonQuery(table As String, Json As String, type As String, guid As String) As String
         Return $"INSERT INTO `{DBName}`.`{table}` ({JsonColumn}, fldLocalCode, fldType) VALUES ('{Json}', '{guid}', '{type}');"

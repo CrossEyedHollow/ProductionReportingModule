@@ -10,7 +10,7 @@ Public Class TokenManager
     'Public Property TokenState As TokenState = TokenState.Invalid
     'Public Property TokenPeriod As Integer = 10 'This time is in seconds
 
-    Private client As RestClient
+    Private ReadOnly client As RestClient
     Private ReadOnly serverAcc As String
     Private ReadOnly serverPass As String
     Private ReadOnly authType As AuthenticationType
@@ -42,12 +42,11 @@ Public Class TokenManager
                     request.AddHeader("content-length", "74")
                     request.AddHeader("authorization", "Basic Y2xpZW50Og==")
                     request.AddParameter("undefined", $"grant_type=password&username={serverAcc}&password={serverPass}", ParameterType.RequestBody)
-
                 Case AuthenticationType.Basic
                     Dim strBaseCredentials As String = Convert.ToBase64String(Encoding.ASCII.GetBytes(String.Format("{0}:{1}", serverAcc, serverPass)))
                     request.AddHeader("authorization", $"Basic {strBaseCredentials}")
                 Case Else
-                    Throw New NotImplementedException($"{authType.ToString()} not aplicable for TokenManager")
+                    Throw New NotImplementedException($"{authType} not aplicable for TokenManager")
             End Select
 
             request.AddHeader("Content-Type", "application/x-www-form-urlencoded") 'Do not change the content type... magic

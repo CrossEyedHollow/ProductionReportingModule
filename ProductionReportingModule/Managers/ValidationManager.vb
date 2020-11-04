@@ -16,8 +16,9 @@ Public Class ValidationManager
     Public Property Content As String
     Public Property JSON As JObject
     Public Property MsgFromSecondary As Boolean
-    Public Property msgType As String
-    Public Property msgCode As String
+
+    Public msgType As String
+    Public msgCode As String
     Public Property Sender As User
 
     Public Sub Validate(message As HttpListenerContext)
@@ -249,21 +250,21 @@ Public Class ValidationManager
     End Function
 
     Public Function VAL_SEC_TOKEN() As ValidationResult
-        Dim output As ValidationResult = ValidationResult.Valid
         Dim id As HttpListenerBasicIdentity = Context.User.Identity
         Dim hashPass As String = ToMD5Hash(id.Password)
 
         Sender = JsonListener.Users.FirstOrDefault(Function(x) x.Name = id.Name)
-        MsgFromSecondary = Sender.IsSecondary
 
         'If the user is not found or the password doesnt match
         If Sender Is Nothing OrElse Sender.Password <> hashPass Then
             ReportTools.Output.Report($"Bad user or password, user: '{id.Name}', pass: '{id.Password}'.")
             Dim newError As New ValidationError() With {.Error_Code = "INVALID_OR_EXPIRED_TOKEN", .Error_Descr = "Authentication failed"}
             Errors.Add(newError)
-            output = ValidationResult.Invalid
+            Return ValidationResult.Invalid
         End If
-        Return output
+
+        MsgFromSecondary = Sender.IsSecondary
+        Return ValidationResult.Valid
     End Function
 
     Public Function VAL_MSG_JSON() As ValidationResult
@@ -323,7 +324,7 @@ Public Class ValidationManager
     End Function
 
     Public Function VAL_UI_MULT_MSG() As ValidationResult
-        Dim output As Boolean = True
+        Dim output As Boolean
         Select Case msgType
             Case "IRU"
                 'upUI
@@ -343,8 +344,7 @@ Public Class ValidationManager
             Case "EUA"
                 'upUI_1
                 'upUI_2
-                output = Not CheckForDuplicates("upUI_1")
-                output = Not CheckForDuplicates("upUI_2")
+                output = Not (CheckForDuplicates("upUI_1") OrElse CheckForDuplicates("upUI_2"))
             Case "EPA"
                 'parent code has to be checked too
                 'Aggregated_UIs1
@@ -356,8 +356,7 @@ Public Class ValidationManager
                     Case 2 'Aggregated only
                         output = Not CheckForDuplicates("Aggregated_UIs2")
                     Case 3 'Both
-                        output = Not CheckForDuplicates("Aggregated_UIs1")
-                        output = Not CheckForDuplicates("Aggregated_UIs2")
+                        output = Not (CheckForDuplicates("Aggregated_UIs1") OrElse CheckForDuplicates("Aggregated_UIs2"))
                     Case Else
                         Throw New Exception($"Unexpected value for Aggregation_Type: {aggType}")
                 End Select
@@ -519,7 +518,7 @@ Public Class ValidationManager
         'If some of the codes weren't found
         If result.Rows.Count <> codeList.Length Then
             'Generate error
-            Dim errCodes As String() = codeList.Except(result.ColumnToArray("fldPrintCode"))
+            Dim errCodes As String() = If(result.Rows.Count < 1, codeList, codeList.Except(result.ColumnToArray("fldPrintCode")).ToArray())
 
             'Create new error
             Dim newError As New ValidationError() With {
@@ -564,12 +563,14 @@ Public Class ValidationManager
         End Select
 
         'Check db
-        Dim result As DataTable = db.CheckAUIExistence(codeList)
+        'Dim result As DataTable = db.CheckAUIExistence(codeList)
+        Dim result As DataTable = db.CheckCodesExistence(codeList, Tables.tblaggregatedcodes.ToString(), "fldPrintCode")
 
         'If some of the codes weren't found
         If result.Rows.Count <> codeList.Length Then
             'Generate error
-            Dim errCodes As String() = codeList.Except(result.ColumnToArray("fldParentCode"))
+            Dim errCodes As String() = If(result.Rows.Count < 1, codeList, codeList.Except(result.ColumnToArray("fldPrintCode")).ToArray())
+            'Dim errCodes As String() = codeList.Except(result.ColumnToArray("fldParentCode"))
 
             'Create new error
             Dim newError As New ValidationError() With {
@@ -661,9 +662,9 @@ Public Class ValidationManager
                 Return ValidationResult.Valid
         End Select
 
-        'Check db
+        'Check db for deactivated/disagreggated
         Dim resultDeact As DataTable = db.CheckForDeactivated(Tables.tblaggregatedcodes.ToString(), codeList, "fldPrintCode")
-        Dim resultDeagg As DataTable = db.CheckForDeaggregated(codeList)
+        Dim resultDeagg As DataTable = db.CheckForEUD(codeList)
 
         'If any of the codes are deactivated/deaggregated
         If resultDeact.Rows.Count > 0 OrElse resultDeagg.Rows.Count > 0 Then
@@ -791,7 +792,7 @@ Public Class ValidationManager
 
     Public Function VAL_UI_ORD_DEACTIVATED() As ValidationResult
         Dim db As New DBManager()
-        Dim output As Boolean = True
+        Dim output As Boolean
         Select Case msgType
             Case "IDA"
                 'Deact_upUI
@@ -819,7 +820,7 @@ Public Class ValidationManager
                     Case 2 'Aggregated ui
                         output = Not CheckForDeactivated("tblaggregatedcodes", aUIs, "fldPrintCode")
                     Case 3 'Both
-                        output = (Not CheckForDeactivated("tblprimarycodes", upUIs, "fldPrintCode")) And (Not CheckForDeactivated("tblaggregatedcodes", aUIs, "fldPrintCode"))
+                        output = Not (CheckForDeactivated("tblprimarycodes", upUIs, "fldPrintCode") OrElse CheckForDeactivated("tblaggregatedcodes", aUIs, "fldPrintCode"))
                     Case Else
                         Throw New Exception($"Unexpected value for Aggregation_Type: {aggType}")
                 End Select
@@ -835,7 +836,7 @@ Public Class ValidationManager
                     Case 2 'Aggregated ui
                         output = Not CheckForDeactivated("tblaggregatedcodes", aUIs, "fldPrintCode")
                     Case 3 'Both
-                        output = (Not CheckForDeactivated("tblprimarycodes", upUIs, "fldPrintCode")) And (Not CheckForDeactivated("tblaggregatedcodes", aUIs, "fldPrintCode"))
+                        output = Not (CheckForDeactivated("tblprimarycodes", upUIs, "fldPrintCode") OrElse CheckForDeactivated("tblaggregatedcodes", aUIs, "fldPrintCode"))
                     Case Else
                         Throw New Exception($"Unexpected value for UI_Type: {aggType}")
                 End Select
@@ -952,7 +953,7 @@ Public Class ValidationManager
                 Select Case aggType
                     Case 1
                         'Check for codes with non matching location
-                        Dim result As DataTable = db.CheckCodeLocation(uis, F_ID, Tables.tblprimarycodes.ToString())
+                        Dim result As DataTable = db.CheckCodeLocation(uis, F_ID, Tables.tblprimarycodes.ToString(), "fldPrintCode")
                         'If there are any
                         If result.Rows.Count > 0 Then
                             'Flag error
@@ -961,7 +962,7 @@ Public Class ValidationManager
                         End If
                     Case 2
                         'Check for codes with non matching location
-                        Dim result As DataTable = db.CheckCodeLocation(aUIs, F_ID, Tables.tblaggregatedcodes.ToString())
+                        Dim result As DataTable = db.CheckCodeLocation(aUIs, F_ID, Tables.tblaggregatedcodes.ToString(), "fldPrintCode")
                         'If there are any
                         If result.Rows.Count > 0 Then
                             'Flag error
@@ -970,8 +971,8 @@ Public Class ValidationManager
                         End If
                     Case 3
                         'Check both arrays
-                        Dim result As DataTable = db.CheckCodeLocation(uis, F_ID, Tables.tblprimarycodes.ToString())
-                        Dim result2 As DataTable = db.CheckCodeLocation(aUIs, F_ID, Tables.tblaggregatedcodes.ToString())
+                        Dim result As DataTable = db.CheckCodeLocation(uis, F_ID, Tables.tblprimarycodes.ToString(), "fldPrintCode")
+                        Dim result2 As DataTable = db.CheckCodeLocation(aUIs, F_ID, Tables.tblaggregatedcodes.ToString(), "fldPrintCode")
                         'If any one the arrays have non matching locations
                         If result.Rows.Count > 0 OrElse result2.Rows.Count > 0 Then
                             err = True
@@ -1026,7 +1027,7 @@ Public Class ValidationManager
                 Select Case uiType
                     Case 1
                         'Check for codes with non matching location
-                        Dim result As DataTable = db.CheckCodeLocation(uis, F_ID, Tables.tblprimarycodes.ToString())
+                        Dim result As DataTable = db.CheckCodeLocation(uis, F_ID, Tables.tblprimarycodes.ToString(), "fldPrintCode")
                         'If there are any
                         If result.Rows.Count > 0 Then
                             'Flag error
@@ -1035,7 +1036,7 @@ Public Class ValidationManager
                         End If
                     Case 2
                         'Check for codes with non matching location
-                        Dim result As DataTable = db.CheckCodeLocation(aUIs, F_ID, Tables.tblaggregatedcodes.ToString())
+                        Dim result As DataTable = db.CheckCodeLocation(aUIs, F_ID, Tables.tblaggregatedcodes.ToString(), "fldPrintCode")
                         'If there are any
                         If result.Rows.Count > 0 Then
                             'Flag error
@@ -1044,8 +1045,8 @@ Public Class ValidationManager
                         End If
                     Case 3
                         'Check both arrays
-                        Dim result As DataTable = db.CheckCodeLocation(uis, F_ID, Tables.tblprimarycodes.ToString())
-                        Dim result2 As DataTable = db.CheckCodeLocation(aUIs, F_ID, Tables.tblaggregatedcodes.ToString())
+                        Dim result As DataTable = db.CheckCodeLocation(uis, F_ID, Tables.tblprimarycodes.ToString(), "fldPrintCode")
+                        Dim result2 As DataTable = db.CheckCodeLocation(aUIs, F_ID, Tables.tblaggregatedcodes.ToString(), "fldPrintCode")
                         'If any one the arrays have non matching locations
                         If result.Rows.Count > 0 OrElse result2.Rows.Count > 0 Then
                             err = True
@@ -1267,18 +1268,18 @@ Public Class ValidationManager
                     Case "IDA"
                         'Deact_upUI
                         'Deact_aUI
-                        Dim aggType As Integer = JSON("Deact_Type").ToObject(Of Integer)
+                        Dim aggType As Integer = resultJSON("Deact_Type").ToObject(Of Integer)
                         Select Case aggType
                             Case 1 'ui only
                                 'Get the codes
-                                Dim uis As String() = JSON("Deact_upUI").ToObject(Of String())
+                                Dim uis As String() = resultJSON("Deact_upUI").ToObject(Of String())
                                 Dim afterEvents As DataTable = CheckForAfterEvents(db, jsonDate, uis, "fldPrintCode", Tables.tblprimarycodes)
 
                                 'If any events are found for these codes, fail validation
                                 If afterEvents.Rows.Count > 0 Then err = True
                             Case 2 'Aggregated only
                                 'Get the codes
-                                Dim uis As String() = JSON("Deact_aUI").ToObject(Of String())
+                                Dim uis As String() = resultJSON("Deact_aUI").ToObject(Of String())
                                 Dim afterEvents As DataTable = CheckForAfterEvents(db, jsonDate, uis, "fldPrintCode", Tables.tblaggregatedcodes)
 
                                 'If any events are found for these codes, fail validation
@@ -1288,7 +1289,7 @@ Public Class ValidationManager
                         End Select
                     Case "EUA"
                         'upUI_1 = upUI(L)
-                        Dim uis As String() = JSON("upUI_1").ToObject(Of String())
+                        Dim uis As String() = resultJSON("upUI_1").ToObject(Of String())
                         Dim afterEvents As DataTable = CheckForAfterEvents(db, jsonDate, uis, "fldPrintCode", Tables.tblprimarycodes)
 
                         'If any events are found for these codes, fail validation
@@ -1297,28 +1298,28 @@ Public Class ValidationManager
                         'parent code has to be checked too
                         'Aggregated_UIs1
                         'Aggregated_UIs2
-                        Dim aggType As Integer = JSON("Aggregation_Type").ToObject(Of Integer)
+                        Dim aggType As Integer = resultJSON("Aggregation_Type").ToObject(Of Integer)
                         Select Case aggType
                             Case 1 'ui only
                                 'Get the codes
-                                Dim uis As String() = JSON("Aggregated_UIs1").ToObject(Of String())
+                                Dim uis As String() = resultJSON("Aggregated_UIs1").ToObject(Of String())
                                 Dim afterEvents As DataTable = CheckForAfterEvents(db, jsonDate, uis, "fldPrintCode", Tables.tblprimarycodes)
 
                                 'If any events are found for these codes, fail validation
                                 If afterEvents.Rows.Count > 0 Then err = True
                             Case 2 'Aggregated only
                                 'Get the codes
-                                Dim uis As String() = JSON("Aggregated_UIs2").ToObject(Of String())
+                                Dim uis As String() = resultJSON("Aggregated_UIs2").ToObject(Of String())
                                 Dim afterEvents As DataTable = CheckForAfterEvents(db, jsonDate, uis, "fldPrintCode", Tables.tblaggregatedcodes)
 
                                 'If any events are found for these codes, fail validation
                                 If afterEvents.Rows.Count > 0 Then err = True
                             Case 3 'Both
                                 'Get the uis
-                                Dim uis As String() = JSON("Aggregated_UIs1").ToObject(Of String())
+                                Dim uis As String() = resultJSON("Aggregated_UIs1").ToObject(Of String())
                                 Dim afterEvents As DataTable = CheckForAfterEvents(db, jsonDate, uis, "fldPrintCode", Tables.tblprimarycodes)
                                 'Get the aUIs
-                                Dim ais As String() = JSON("Aggregated_UIs2").ToObject(Of String())
+                                Dim ais As String() = resultJSON("Aggregated_UIs2").ToObject(Of String())
                                 Dim afterEvents2 As DataTable = CheckForAfterEvents(db, jsonDate, uis, "fldPrintCode", Tables.tblaggregatedcodes)
                                 'If any events are found for these codes, fail validation
                                 If afterEvents.Rows.Count > 0 OrElse afterEvents2.Rows.Count > 0 Then err = True
@@ -1329,28 +1330,28 @@ Public Class ValidationManager
                     Case "EDP", "ERP", "ETL", "EVR", "EIV", "EPO", "EPR"
                         'upUIs
                         'aUIs
-                        Dim aggType As Integer = JSON("UI_Type").ToObject(Of Integer)
+                        Dim aggType As Integer = resultJSON("UI_Type").ToObject(Of Integer)
                         Select Case aggType
                             Case 1 'ui only
                                 'Get the codes
-                                Dim uis As String() = JSON("upUIs").ToObject(Of String())
+                                Dim uis As String() = resultJSON("upUIs").ToObject(Of String())
                                 Dim afterEvents As DataTable = CheckForAfterEvents(db, jsonDate, uis, "fldPrintCode", Tables.tblprimarycodes)
 
                                 'If any events are found for these codes, fail validation
                                 If afterEvents.Rows.Count > 0 Then err = True
                             Case 2 'Aggregated only
                                 'Get the codes
-                                Dim uis As String() = JSON("aUIs").ToObject(Of String())
+                                Dim uis As String() = resultJSON("aUIs").ToObject(Of String())
                                 Dim afterEvents As DataTable = CheckForAfterEvents(db, jsonDate, uis, "fldPrintCode", Tables.tblaggregatedcodes)
 
                                 'If any events are found for these codes, fail validation
                                 If afterEvents.Rows.Count > 0 Then err = True
                             Case 3 'Both
                                 'Get the uis
-                                Dim uis As String() = JSON("upUIs").ToObject(Of String())
+                                Dim uis As String() = resultJSON("upUIs").ToObject(Of String())
                                 Dim afterEvents As DataTable = CheckForAfterEvents(db, jsonDate, uis, "fldPrintCode", Tables.tblprimarycodes)
                                 'Get the aUIs
-                                Dim ais As String() = JSON("aUIs").ToObject(Of String())
+                                Dim ais As String() = resultJSON("aUIs").ToObject(Of String())
                                 Dim afterEvents2 As DataTable = CheckForAfterEvents(db, jsonDate, uis, "fldPrintCode", Tables.tblaggregatedcodes)
                                 'If any events are found for these codes, fail validation
                                 If afterEvents.Rows.Count > 0 OrElse afterEvents2.Rows.Count > 0 Then err = True

@@ -7,9 +7,9 @@ Public Class JsonManager
     Public Property Enabled As Boolean
     Public authType As AuthenticationType
     Private client As RestClient
-    Private serverAcc As String
-    Private serverPass As String
-    Private token As AuthenticationToken
+    Private ReadOnly serverAcc As String
+    Private ReadOnly serverPass As String
+    Private ReadOnly token As AuthenticationToken
 
     ''' <summary>
     ''' Call this method to initialize the needed internal objects 
@@ -49,7 +49,7 @@ Public Class JsonManager
                 'Add the headers and body
                 request.AddHeader("Authorization", "Basic Og==")
             Case Else
-                Throw New NotImplementedException($"{authType.ToString()} not implemented yet")
+                Throw New NotImplementedException($"{authType} not implemented yet")
         End Select
 
         request.AddHeader("Content-Length", byteBody.Length)

@@ -7,8 +7,7 @@ Imports Newtonsoft.Json.Linq
 Imports ReportTools
 
 Public Class JsonListener
-
-    Dim listener As HttpListener
+    ReadOnly listener As HttpListener
     Shared Property Prefix As String
     Shared Property Users As List(Of User)
 
