@@ -28,7 +28,7 @@ Public Class DBBase
 
         'Instantiate necessary objects
         conn = New MySqlConnection(cBuilder.ConnectionString)
-        cmd = New MySqlCommand() With {.Connection = conn}
+        cmd = New MySqlCommand() With {.Connection = conn, .CommandTimeout = 60000}
         adapter = New MySqlDataAdapter With {.SelectCommand = cmd}
     End Sub
 
@@ -36,7 +36,6 @@ Public Class DBBase
     Public Function ReadDatabase(query As String) As DataTable
         Dim output As New DataTable
         cmd.CommandText = query
-
         Try
             conn.Open()
             adapter.Fill(output)
