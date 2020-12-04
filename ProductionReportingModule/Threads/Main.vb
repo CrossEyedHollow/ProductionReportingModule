@@ -17,20 +17,6 @@ Module Main
             Exit Sub
         End Try
 
-        'TESTING GROUND
-        'END OF TESTING GROUND
-        'Dim db As New DBManager()
-        'Dim codes As String() = {"03800001131720SYUD1J3YUI", "03800001131720SysqmUCcH4", "03800001131720Sfsu2ju9G9", "03800001131737B1d753Nd2s", "03800001131720SRI15W8aUW", "03800001131720SL5wUt0HMG", "03800001131720SD6cgumUtA"}
-        'Dim result As DataTable = db.SelectInvolvedEvents(codes, Tables.tblaggregatedcodes, "fldPrintCode")
-
-
-        'Dim strEvents As String = String.Join(",", result.ColumnToArray("EventList"))
-        'Dim arr As String() = strEvents.Split(",")
-        ''Remove duplicates
-        'Dim distinctEvents As HashSet(Of String) = New HashSet(Of String)(arr.Where(Function(x) Not String.IsNullOrEmpty(x)).ToArray())
-        'Dim tststr = $"'{String.Join("','", distinctEvents)}'"
-        'END TEST
-
         'Start the token manager
         tokenManager.Start()
 

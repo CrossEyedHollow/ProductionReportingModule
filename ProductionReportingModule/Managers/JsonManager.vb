@@ -11,10 +11,6 @@ Public Class JsonManager
     Private ReadOnly serverPass As String
     Private ReadOnly token As AuthenticationToken
 
-    ''' <summary>
-    ''' Call this method to initialize the needed internal objects 
-    ''' </summary>
-    ''' <param name="url"></param>
     Public Sub New(url As String)
         client = New RestClient(url)
         authType = AuthenticationType.NoAuth

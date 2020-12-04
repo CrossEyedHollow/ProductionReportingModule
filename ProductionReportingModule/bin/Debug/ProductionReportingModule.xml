@@ -27,11 +27,5 @@ ProductionReportingModule
  Starts the listener
  </summary>
 </member>
-<member name="M:ProductionReportingModule.JsonManager.#ctor(System.String)">
- <summary>
- Call this method to initialize the needed internal objects 
- </summary>
- <param name="url"></param>
-</member>
 </members>
 </doc>
